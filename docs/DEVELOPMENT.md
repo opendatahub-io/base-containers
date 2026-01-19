@@ -119,9 +119,21 @@ If an environment variable is not set, the corresponding tests will be skipped.
 
 ## CI Workflow
 
-Before submitting a PR, ensure:
+GitHub Actions automatically runs on every PR and push to `main`:
 
-1. Code passes linting: `tox -e lint`
-2. Code passes type checking: `tox -e type`
-3. Tests pass for affected images
+| Job | Trigger | Description |
+|-----|---------|-------------|
+| `lint` | PR, push | Runs `ruff check` and `ruff format --check` |
+| `type-check` | PR, push | Runs `mypy` type checking |
+| `test-python-image` | PR, push | Builds Python image and runs tests |
+| `test-cuda-image` | push to main | Builds CUDA image and runs tests (skipped on PRs due to size) |
+
+### Before Submitting a PR
+
+Ensure your changes pass locally:
+
+```bash
+tox                    # Run lint + type checks
+tox -e test            # Run tests (if images are built)
+```
 
