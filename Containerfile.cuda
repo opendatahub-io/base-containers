@@ -74,7 +74,7 @@ ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-12-${NV_CUDNN_VERSION}
 # NVIDIA Repository Setup
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
-    dnf install -y --setopt=keepcache=1 curl ca-certificates
+    dnf install -y --setopt=keepcache=1 --allowerasing curl ca-certificates
 
 RUN cat > /etc/yum.repos.d/cuda.repo << EOF
 [cuda-rhel9-${NVARCH}]
