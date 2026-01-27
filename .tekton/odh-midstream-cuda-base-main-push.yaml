@@ -633,6 +633,17 @@ spec:
       optional: true
     - name: netrc
       optional: true
+  taskRunSpecs:
+    - pipelineTaskName: ecosystem-cert-preflight-checks
+      stepSpecs:
+        - name: app-check
+          computeResources:
+            requests:
+              memory: 8Gi
+              cpu: '2'
+            limits:
+              memory: 12Gi
+              cpu: '4'
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-midstream-cuda-base-main
   workspaces:
