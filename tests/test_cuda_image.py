@@ -6,6 +6,8 @@ and labels. All tests run without GPU hardware.
 
 import os
 
+import pytest
+
 # --- CUDA Environment Tests ---
 
 
@@ -13,10 +15,17 @@ def test_cuda_version(cuda_container):
     """Verify CUDA_VERSION environment variable matches expected version.
 
     The expected version is controlled by the CUDA_VERSION environment variable.
-    If not set, defaults to 12.8 for backward compatibility.
+    If not set, version validation is skipped (only checks env var exists).
     """
-    expected_version = os.environ.get("CUDA_VERSION", "12.8")
     actual_version = cuda_container.get_env("CUDA_VERSION")
+    assert actual_version, "CUDA_VERSION environment variable should be set in container"
+
+    expected_version = os.environ.get("CUDA_VERSION")
+    if expected_version is None:
+        pytest.skip(
+            "CUDA_VERSION not set - skipping version validation. "
+            "Set CUDA_VERSION env var to validate specific version."
+        )
     assert actual_version.startswith(expected_version), (
         f"Expected CUDA_VERSION to start with {expected_version}, got {actual_version}"
     )

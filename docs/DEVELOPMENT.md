@@ -127,8 +127,19 @@ CUDA_IMAGE=<image:tag> pytest tests/test_cuda_image.py tests/test_common.py -v
 |----------|-------------|---------|
 | `PYTHON_IMAGE` | Python base image to test | `quay.io/opendatahub/odh-midstream-python-base:3.12-ubi9` |
 | `CUDA_IMAGE` | CUDA base image to test | `quay.io/opendatahub/odh-midstream-cuda-base:12.8-py312` |
+| `PYTHON_VERSION` | Expected Python version for validation | `3.12` |
+| `CUDA_VERSION` | Expected CUDA version for validation | `12.8`, `12.9`, `13.0`, `13.1` |
 
-If an environment variable is not set, the corresponding tests will be skipped.
+If `PYTHON_IMAGE` or `CUDA_IMAGE` is not set, the corresponding tests will be skipped.
+If `PYTHON_VERSION` or `CUDA_VERSION` is not set, version validation tests will be skipped with a message.
+
+**Note:** Always set the version environment variable to match the image being tested. For example, to test CUDA 13.0:
+
+```bash
+CUDA_IMAGE=localhost/odh-midstream-cuda-base:13.0-py312 \
+CUDA_VERSION=13.0 \
+pytest tests/test_cuda_image.py tests/test_common.py -v
+```
 
 
 ## CI Workflow

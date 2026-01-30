@@ -20,6 +20,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
 
+# hadolint ignore=SC1083
 LABEL name="odh-midstream-python-base" \
       version="${VERSION}" \
       summary="ODH Python {{PYTHON_VERSION}} Base Image" \

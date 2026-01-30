@@ -14,13 +14,8 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      cuda-12-8: ${{ steps.filter.outputs.cuda-12-8 }}
-      cuda-12-9: ${{ steps.filter.outputs.cuda-12-9 }}
-      cuda-13-0: ${{ steps.filter.outputs.cuda-13-0 }}
-      cuda-13-1: ${{ steps.filter.outputs.cuda-13-1 }}
-      python-3-12: ${{ steps.filter.outputs.python-3-12 }}
-      any-cuda: ${{ steps.filter.outputs.any-cuda }}
-      any-python: ${{ steps.filter.outputs.any-python }}
+      any-cuda: ${{ steps.filter.outputs['any-cuda'] }}
+      any-python: ${{ steps.filter.outputs['any-python'] }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,41 +27,6 @@ jobs:
         id: filter
         with:
           filters: |
-            cuda-12-8:
-              - 'cuda/12.8/**'
-              - 'Containerfile.cuda.template'
-              - 'scripts/build.sh'
-              - 'tests/test_cuda_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
-            cuda-12-9:
-              - 'cuda/12.9/**'
-              - 'Containerfile.cuda.template'
-              - 'scripts/build.sh'
-              - 'tests/test_cuda_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
-            cuda-13-0:
-              - 'cuda/13.0/**'
-              - 'Containerfile.cuda.template'
-              - 'scripts/build.sh'
-              - 'tests/test_cuda_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
-            cuda-13-1:
-              - 'cuda/13.1/**'
-              - 'Containerfile.cuda.template'
-              - 'scripts/build.sh'
-              - 'tests/test_cuda_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
-            python-3-12:
-              - 'python/3.12/**'
-              - 'Containerfile.python.template'
-              - 'scripts/build.sh'
-              - 'tests/test_python_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
             any-cuda:
               - 'cuda/**'
               - 'Containerfile.cuda.template'
@@ -169,7 +129,7 @@ jobs:
     # Run when Python-related files change AND lint-containerfiles passed/skipped
     if: |
       always() &&
-      needs.changes.outputs.any-python == 'true' &&
+      needs.changes.outputs['any-python'] == 'true' &&
       needs.lint.result == 'success' &&
       needs.type-check.result == 'success' &&
       (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
@@ -214,7 +174,7 @@ jobs:
     # Run when CUDA-related files change AND lint-containerfiles passed/skipped
     if: |
       always() &&
-      needs.changes.outputs.any-cuda == 'true' &&
+      needs.changes.outputs['any-cuda'] == 'true' &&
       needs.lint.result == 'success' &&
       needs.type-check.result == 'success' &&
       (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')

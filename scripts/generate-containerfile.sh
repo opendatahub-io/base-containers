@@ -166,6 +166,12 @@ generate_python() {
 }
 
 main() {
+    # Handle help flags first (before arg count check)
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || "${1:-}" == "help" ]]; then
+        print_usage
+        exit 0
+    fi
+
     if [[ $# -lt 2 ]]; then
         log_error "Missing arguments"
         print_usage
@@ -181,10 +187,6 @@ main() {
             ;;
         python)
             generate_python "${version}"
-            ;;
-        -h|--help|help)
-            print_usage
-            exit 0
             ;;
         *)
             log_error "Unknown type: ${type}"

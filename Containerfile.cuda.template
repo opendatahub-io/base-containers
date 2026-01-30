@@ -63,14 +63,17 @@ ENV NV_CUDA_CUDART_VERSION=${NV_CUDA_CUDART_VERSION}
 ENV NV_CUDA_LIB_VERSION=${NV_CUDA_LIB_VERSION}
 ENV NV_NVTX_VERSION=${NV_NVTX_VERSION}
 ENV NV_LIBNPP_VERSION=${NV_LIBNPP_VERSION}
+# hadolint ignore=SC1083
 ENV NV_LIBNPP_PACKAGE=libnpp-{{CUDA_MAJOR_MINOR}}-${NV_LIBNPP_VERSION}
 ENV NV_LIBCUBLAS_VERSION=${NV_LIBCUBLAS_VERSION}
 ENV NV_LIBNCCL_PACKAGE_NAME=libnccl
 ENV NV_LIBNCCL_PACKAGE_VERSION=${NV_LIBNCCL_PACKAGE_VERSION}
 ENV NV_LIBNCCL_VERSION=${NV_LIBNCCL_VERSION}
 ENV NCCL_VERSION=${NV_LIBNCCL_VERSION}
+# hadolint ignore=SC1083
 ENV NV_LIBNCCL_PACKAGE=${NV_LIBNCCL_PACKAGE_NAME}-${NV_LIBNCCL_PACKAGE_VERSION}+cuda{{CUDA_MAJOR_MINOR_DOT}}
 ENV NV_CUDNN_VERSION=${NV_CUDNN_VERSION}
+# hadolint ignore=SC1083
 ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-{{CUDA_MAJOR}}-${NV_CUDNN_VERSION}
 
 # -----------------------------------------------------------------------------
@@ -79,22 +82,24 @@ ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-{{CUDA_MAJOR}}-${NV_CUDNN_VERSION}
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 --allowerasing curl ca-certificates
 
+# Download and verify GPG key before creating repo
+RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3b80c87 && \
+    curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}/D42D0685.pub" | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
+    echo "$NVIDIA_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA" | sha256sum -c --strict -
+
+# Create repo config pointing to locally verified key
 RUN { echo "[cuda-rhel9-${NVARCH}]"; \
       echo "name=cuda-rhel9-${NVARCH}"; \
       echo "baseurl=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}"; \
       echo "enabled=1"; \
       echo "gpgcheck=1"; \
-      echo "gpgkey=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}/D42D0685.pub"; \
+      echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA"; \
     } > /etc/yum.repos.d/cuda.repo
-
-# GPG key verification
-RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3b80c87 && \
-    curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}/D42D0685.pub" | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
-    echo "$NVIDIA_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA" | sha256sum -c --strict -
 
 # -----------------------------------------------------------------------------
 # CUDA Base Packages
 # -----------------------------------------------------------------------------
+# hadolint ignore=SC1083
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf upgrade -y --setopt=keepcache=1 && \
     dnf install -y --setopt=keepcache=1 \
@@ -123,6 +128,7 @@ ENV CUDA_MODULE_LOADING=LAZY
 # CUDA Runtime Libraries
 # Source: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist
 # -----------------------------------------------------------------------------
+# hadolint ignore=SC1083
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 \
         cuda-libraries-{{CUDA_MAJOR_MINOR}}-${NV_CUDA_LIB_VERSION} \
@@ -149,6 +155,7 @@ ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 # -----------------------------------------------------------------------------
 # CUDA Toolkit
 # -----------------------------------------------------------------------------
+# hadolint ignore=SC1083
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf -y install --setopt=keepcache=1 cuda-toolkit-{{CUDA_MAJOR_MINOR}}
 
@@ -224,6 +231,7 @@ RUN dnf clean all && \
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG PYTHON_VERSION
 
 LABEL name="odh-midstream-cuda-base" \
       version="${VERSION}" \
@@ -244,7 +252,7 @@ LABEL name="odh-midstream-cuda-base" \
       com.nvidia.cudnn.version="${NV_CUDNN_VERSION}" \
       com.nvidia.nccl.version="${NCCL_VERSION}" \
       com.opendatahub.accelerator="cuda" \
-      com.opendatahub.python="3.12"
+      com.opendatahub.python="${PYTHON_VERSION}"
 
 # -----------------------------------------------------------------------------
 # User Configuration (from notebooks pattern)
