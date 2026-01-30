@@ -1,0 +1,157 @@
+# ODH Python Base Image (UBI 9)
+# Python Version: {{PYTHON_VERSION}}
+# Generated from Containerfile.python.template - edit template, not this file
+#
+# Usage: ./scripts/build.sh python-{{PYTHON_VERSION}}
+# Build args: python/{{PYTHON_VERSION}}/app.conf
+
+ARG BASE_IMAGE
+ARG PIP_INDEX_URL
+ARG PIP_EXTRA_INDEX_URL
+
+# Build metadata for OCI labels
+ARG BUILD_DATE
+ARG VCS_REF=unknown
+ARG VERSION=0.0.1
+
+FROM ${BASE_IMAGE}
+
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+
+LABEL name="odh-midstream-python-base" \
+      version="${VERSION}" \
+      summary="ODH Python {{PYTHON_VERSION}} Base Image" \
+      description="Python {{PYTHON_VERSION}} base image for Open Data Hub workloads" \
+      io.k8s.display-name="ODH Python {{PYTHON_VERSION}} Base" \
+      io.k8s.description="Python {{PYTHON_VERSION}} base image for Open Data Hub workloads" \
+      io.openshift.tags="python,python{{PYTHON_VERSION_NODOT}},odh,ai,ml,ubi9" \
+      io.openshift.expose-services="" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.title="ODH Python {{PYTHON_VERSION}} Base Image" \
+      org.opencontainers.image.description="Python {{PYTHON_VERSION}} base image for Open Data Hub workloads" \
+      org.opencontainers.image.url="https://github.com/opendatahub-io" \
+      org.opencontainers.image.source="https://github.com/opendatahub-io/base-containers" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.vendor="Open Data Hub" \
+      com.opendatahub.accelerator="cpu" \
+      com.opendatahub.python="{{PYTHON_VERSION}}"
+
+# -----------------------------------------------------------------------------
+# Environment (from llama-stack-distribution + model-registry patterns)
+# -----------------------------------------------------------------------------
+
+# Python settings - prevent bytecode files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_SYSTEM_PYTHON=1 \
+    UV_NO_CACHE=1
+
+USER 0
+
+RUN dnf update -y --setopt=tsflags=nodocs && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf /var/cache/yum
+
+# -----------------------------------------------------------------------------
+# Package Index Configuration
+# -----------------------------------------------------------------------------
+# Configure pip and uv to use the specified package indexes.
+# Users can simply run: pip install <pkg> or uv pip install <pkg>
+# Override indexes at build time via --build-arg for downstream builds.
+
+ARG PIP_INDEX_URL
+ARG PIP_EXTRA_INDEX_URL
+
+# pip configuration (system-wide) - must be created before installing uv
+RUN mkdir -p /etc/pip && \
+    { echo "[global]"; \
+      echo "index-url = ${PIP_INDEX_URL}"; \
+      [ -n "${PIP_EXTRA_INDEX_URL}" ] && echo "extra-index-url = ${PIP_EXTRA_INDEX_URL}"; \
+      true; \
+    } > /etc/pip.conf
+
+# Install uv - fast Python package installer
+# https://github.com/astral-sh/uv
+# Version pinned in requirements-build.txt
+COPY --chmod=644 --chown=0:0 requirements-build.txt /tmp/requirements-build.txt
+RUN python -m pip install --no-cache-dir -r /tmp/requirements-build.txt && \
+    rm /tmp/requirements-build.txt
+
+# uv configuration (system-wide)
+RUN mkdir -p /etc/uv && \
+    { echo "[pip]"; \
+      echo "index-url = \"${PIP_INDEX_URL}\""; \
+      [ -n "${PIP_EXTRA_INDEX_URL}" ] && echo "extra-index-url = [\"${PIP_EXTRA_INDEX_URL}\"]"; \
+      true; \
+    } > /etc/uv/uv.toml
+ENV UV_CONFIG_FILE=/etc/uv/uv.toml
+
+# Copy fix-permissions script from sclorg for OpenShift compatibility
+# Source: https://github.com/sclorg/container-common-scripts
+COPY --chmod=755 --chown=0:0 scripts/fix-permissions /usr/local/bin/fix-permissions
+
+# -----------------------------------------------------------------------------
+# Directory Setup (from notebooks + trustyai patterns)
+# -----------------------------------------------------------------------------
+
+# Create cache directories with proper permissions for OpenShift
+# fix-permissions ensures group 0 can read/write, enabling arbitrary UID
+RUN mkdir -p /opt/app-root/src/.cache && \
+    chown -R 1001:0 /opt/app-root && \
+    fix-permissions /opt/app-root -P
+
+# -----------------------------------------------------------------------------
+# User Configuration (from notebooks pattern)
+# -----------------------------------------------------------------------------
+
+# Switch to non-root user
+# UID 1001 is standard for UBI Python images and OpenShift SCC compatible
+USER 1001
+
+# Standard workdir for UBI Python images
+WORKDIR /opt/app-root/src
+# -----------------------------------------------------------------------------
+# Health Check
+# -----------------------------------------------------------------------------
+# Child images can add a HEALTHCHECK - example pattern:
+# HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+#     CMD python -c "import myapp; myapp.health_check()" || exit 1
+
+# -----------------------------------------------------------------------------
+# Extending This Image
+# -----------------------------------------------------------------------------
+#
+# Example Dockerfile that extends this base:
+#
+#   FROM odh-midstream-python-base:py{{PYTHON_VERSION_NODOT}}
+#
+#   # Install dependencies (pip and uv are pre-configured with package indexes)
+#   COPY requirements.txt .
+#   RUN pip install -r requirements.txt
+#   # Or with uv (faster):
+#   # RUN uv pip install -r requirements.txt
+#
+#   # Copy application (preserve ownership for non-root user)
+#   COPY --chown=1001:0 . .
+#
+#   # Run application
+#   CMD ["python", "app.py"]
+#
+# -----------------------------------------------------------------------------
+#
+# Build for ODH (uses default package indexes):
+#   podman build -t myapp:odh .
+#
+# Build for RHOAI (override to use internal mirror):
+#   podman build -t myapp:rhoai \
+#     --build-arg PIP_INDEX_URL=https://aipcc.internal/simple \
+#     --build-arg PIP_EXTRA_INDEX_URL="" \
+#     .
+#
+# -----------------------------------------------------------------------------

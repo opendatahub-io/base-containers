@@ -33,5 +33,7 @@ htmlcov/
 Thumbs.db
 
 # Build artifacts
+build/
+dist/
 *.log
 
