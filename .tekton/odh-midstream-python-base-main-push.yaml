@@ -28,9 +28,9 @@ spec:
     value:
     - linux/x86_64
   - name: dockerfile
-    value: Containerfile.python
+    value: python/3.12/Containerfile
   - name: build-args-file
-    value: build-args/python-app.conf
+    value: python/3.12/app.conf
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.

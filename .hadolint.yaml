@@ -71,3 +71,8 @@ ignored:
   # DL4006: Set the SHELL option -o pipefail before RUN with a pipe in it
   # The pipe commands in our Containerfiles are safe and pipefail could have side effects
   - DL4006
+
+  # SC1083: This } is literal
+  # False positive in template files that use {{PLACEHOLDER}} syntax
+  # The templates are processed by sed to generate actual Containerfiles
+  - SC1083

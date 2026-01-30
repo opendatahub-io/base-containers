@@ -1,6 +1,9 @@
 # ODH Python Base Image (UBI 9)
-# Usage: ./scripts/build.sh python
-# Build args: build-args/python-app.conf
+# Python Version: 3.12
+# Generated from Containerfile.python.template - edit template, not this file
+#
+# Usage: ./scripts/build.sh python-3.12
+# Build args: python/3.12/app.conf
 
 ARG BASE_IMAGE
 ARG PIP_INDEX_URL
@@ -76,7 +79,7 @@ RUN mkdir -p /etc/pip && \
 # Install uv - fast Python package installer
 # https://github.com/astral-sh/uv
 # Version pinned in requirements-build.txt
-COPY requirements-build.txt /tmp/requirements-build.txt
+COPY --chmod=644 --chown=0:0 requirements-build.txt /tmp/requirements-build.txt
 RUN python -m pip install --no-cache-dir -r /tmp/requirements-build.txt && \
     rm /tmp/requirements-build.txt
 
@@ -126,7 +129,7 @@ WORKDIR /opt/app-root/src
 #
 # Example Dockerfile that extends this base:
 #
-#   FROM odh-midstream-python-base:3.12-ubi9
+#   FROM odh-midstream-python-base:py312
 #
 #   # Install dependencies (pip and uv are pre-configured with package indexes)
 #   COPY requirements.txt .
@@ -152,4 +155,3 @@ WORKDIR /opt/app-root/src
 #     .
 #
 # -----------------------------------------------------------------------------
-

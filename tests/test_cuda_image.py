@@ -4,13 +4,22 @@ These tests verify CUDA-specific environment variables, libraries,
 and labels. All tests run without GPU hardware.
 """
 
+import os
 
 # --- CUDA Environment Tests ---
 
 
 def test_cuda_version(cuda_container):
-    """Verify CUDA_VERSION environment variable is set to 12.8.x."""
-    assert cuda_container.get_env("CUDA_VERSION").startswith("12.8")
+    """Verify CUDA_VERSION environment variable matches expected version.
+
+    The expected version is controlled by the CUDA_VERSION environment variable.
+    If not set, defaults to 12.8 for backward compatibility.
+    """
+    expected_version = os.environ.get("CUDA_VERSION", "12.8")
+    actual_version = cuda_container.get_env("CUDA_VERSION")
+    assert actual_version.startswith(expected_version), (
+        f"Expected CUDA_VERSION to start with {expected_version}, got {actual_version}"
+    )
 
 
 def test_nvidia_visible_devices(cuda_container):

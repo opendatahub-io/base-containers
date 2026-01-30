@@ -14,8 +14,13 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      cuda: ${{ steps.filter.outputs.cuda }}
-      python: ${{ steps.filter.outputs.python }}
+      cuda-12-8: ${{ steps.filter.outputs['cuda-12-8'] }}
+      cuda-12-9: ${{ steps.filter.outputs['cuda-12-9'] }}
+      cuda-13-0: ${{ steps.filter.outputs['cuda-13-0'] }}
+      cuda-13-1: ${{ steps.filter.outputs['cuda-13-1'] }}
+      python-3-12: ${{ steps.filter.outputs['python-3-12'] }}
+      any-cuda: ${{ steps.filter.outputs['any-cuda'] }}
+      any-python: ${{ steps.filter.outputs['any-python'] }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,16 +32,51 @@ jobs:
         id: filter
         with:
           filters: |
-            cuda:
-              - 'Containerfile.cuda'
-              - 'build-args/cuda-app.conf'
+            cuda-12-8:
+              - 'cuda/12.8/**'
+              - 'Containerfile.cuda.template'
               - 'scripts/build.sh'
               - 'tests/test_cuda_image.py'
               - 'tests/test_common.py'
               - 'tests/conftest.py'
-            python:
-              - 'Containerfile.python'
-              - 'build-args/python-app.conf'
+            cuda-12-9:
+              - 'cuda/12.9/**'
+              - 'Containerfile.cuda.template'
+              - 'scripts/build.sh'
+              - 'tests/test_cuda_image.py'
+              - 'tests/test_common.py'
+              - 'tests/conftest.py'
+            cuda-13-0:
+              - 'cuda/13.0/**'
+              - 'Containerfile.cuda.template'
+              - 'scripts/build.sh'
+              - 'tests/test_cuda_image.py'
+              - 'tests/test_common.py'
+              - 'tests/conftest.py'
+            cuda-13-1:
+              - 'cuda/13.1/**'
+              - 'Containerfile.cuda.template'
+              - 'scripts/build.sh'
+              - 'tests/test_cuda_image.py'
+              - 'tests/test_common.py'
+              - 'tests/conftest.py'
+            python-3-12:
+              - 'python/3.12/**'
+              - 'Containerfile.python.template'
+              - 'scripts/build.sh'
+              - 'tests/test_python_image.py'
+              - 'tests/test_common.py'
+              - 'tests/conftest.py'
+            any-cuda:
+              - 'cuda/**'
+              - 'Containerfile.cuda.template'
+              - 'scripts/build.sh'
+              - 'tests/test_cuda_image.py'
+              - 'tests/test_common.py'
+              - 'tests/conftest.py'
+            any-python:
+              - 'python/**'
+              - 'Containerfile.python.template'
               - 'scripts/build.sh'
               - 'tests/test_python_image.py'
               - 'tests/test_common.py'
@@ -123,16 +163,20 @@ jobs:
           config: .hadolint.yaml
 
   test-python-image:
-    name: Test Python Image
+    name: Test Python ${{ matrix.version }} Image
     runs-on: ubuntu-latest
     needs: [lint, type-check, changes, lint-containerfiles]
     # Run when Python-related files change AND lint-containerfiles passed/skipped
     if: |
       always() &&
-      needs.changes.outputs.python == 'true' &&
+      needs.changes.outputs['any-python'] == 'true' &&
       needs.lint.result == 'success' &&
       needs.type-check.result == 'success' &&
       (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
+    strategy:
+      matrix:
+        version: ["3.12"]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
 
@@ -147,28 +191,37 @@ jobs:
       - name: Get image tag from config
         id: config
         run: |
-          TAG=$(grep '^IMAGE_TAG=' build-args/python-app.conf | cut -d'=' -f2)
+          TAG=$(grep '^IMAGE_TAG=' python/${{ matrix.version }}/app.conf | cut -d'=' -f2)
+          if [ -z "$TAG" ]; then
+            echo "::error::IMAGE_TAG not found in python/${{ matrix.version }}/app.conf"
+            exit 1
+          fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
-      - name: Build Python image
-        run: ./scripts/build.sh python
+      - name: Build Python ${{ matrix.version }} image
+        run: ./scripts/build.sh python-${{ matrix.version }}
 
       - name: Run Python image tests
         env:
           PYTHON_IMAGE: ${{ env.IMAGE_REGISTRY }}/odh-midstream-python-base:${{ steps.config.outputs.tag }}
+          PYTHON_VERSION: ${{ matrix.version }}
         run: pytest tests/test_python_image.py tests/test_common.py -v
 
   test-cuda-image:
-    name: Test CUDA Image
+    name: Test CUDA ${{ matrix.version }} Image
     runs-on: ubuntu-latest
     needs: [lint, type-check, changes, lint-containerfiles]
     # Run when CUDA-related files change AND lint-containerfiles passed/skipped
     if: |
       always() &&
-      needs.changes.outputs.cuda == 'true' &&
+      needs.changes.outputs['any-cuda'] == 'true' &&
       needs.lint.result == 'success' &&
       needs.type-check.result == 'success' &&
       (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
+    strategy:
+      matrix:
+        version: ["12.8", "12.9", "13.0", "13.1"]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
 
@@ -196,15 +249,20 @@ jobs:
       - name: Get image tag from config
         id: config
         run: |
-          TAG=$(grep '^IMAGE_TAG=' build-args/cuda-app.conf | cut -d'=' -f2)
+          TAG=$(grep '^IMAGE_TAG=' cuda/${{ matrix.version }}/app.conf | cut -d'=' -f2)
+          if [ -z "$TAG" ]; then
+            echo "::error::IMAGE_TAG not found in cuda/${{ matrix.version }}/app.conf"
+            exit 1
+          fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
-      - name: Build CUDA image
-        run: ./scripts/build.sh cuda
+      - name: Build CUDA ${{ matrix.version }} image
+        run: ./scripts/build.sh cuda-${{ matrix.version }}
 
       - name: Run CUDA image tests
         env:
           CUDA_IMAGE: ${{ env.IMAGE_REGISTRY }}/odh-midstream-cuda-base:${{ steps.config.outputs.tag }}
+          CUDA_VERSION: ${{ matrix.version }}
         run: pytest tests/test_cuda_image.py tests/test_common.py -v
 
   # Aggregator job for branch protection - use this as the required status check

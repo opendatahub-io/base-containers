@@ -9,57 +9,54 @@ This repository provides standardized Containerfiles for building ODH midstream 
 **Why base images?** See [docs/RATIONALE.md](docs/RATIONALE.md) for the motivation behind this project.
 For development setup and workflow, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
+## Available Images
+
+| Type   | Versions               | Base OS          |
+|--------|------------------------|------------------|
+| Python | 3.12                   | UBI 9            |
+| CUDA   | 12.8, 12.9, 13.0, 13.1 | CentOS Stream 9  |
+
+## Repository Structure
+
+Each image type has version-specific directories containing a `Containerfile` and `app.conf`:
+
+```text
+cuda/<version>/Containerfile      # CUDA image definition
+cuda/<version>/app.conf           # CUDA build arguments
+python/<version>/Containerfile    # Python image definition
+python/<version>/app.conf         # Python build arguments
+```
+
 ## Quick Start
 
 ### Using Build Script (Recommended)
 
 ```bash
-# Build all images using versions from config file
+# Build a specific version
+./scripts/build.sh <type>-<version>    # e.g., cuda-12.8, python-3.12
+
+# Build all versions of a type
+./scripts/build.sh <type>              # e.g., cuda, python
+
+# Build everything
 ./scripts/build.sh all
 
-# Build only Python base image
-./scripts/build.sh python
-
-# Build only CUDA base image
-./scripts/build.sh cuda
+# Show available versions and help
+./scripts/build.sh --help
 ```
 
 ### Manual Build
 
 ```bash
-# Build Python base image
-podman build -t odh-midstream-python-base:3.12-ubi9 \
-  -f Containerfile.python .
+# Generic pattern
+podman build -t <image-name>:<tag> \
+  --build-arg-file <type>/<version>/app.conf \
+  -f <type>/<version>/Containerfile .
 
-# Build CUDA base image
+# Example: Build CUDA 12.8
 podman build -t odh-midstream-cuda-base:12.8-py312 \
-  -f Containerfile.cuda .
-```
-
-## Repository Structure
-
-```text
-base-containers/
-├── Containerfile.python       # Python 3.12 on UBI 9
-├── Containerfile.cuda         # CUDA 12.8 + Python 3.12
-├── .hadolint.yaml             # Hadolint configuration
-├── build-args/
-│   ├── python-app.conf        # Python/CPU image build arguments
-│   └── cuda-app.conf          # CUDA/GPU image build arguments
-├── requirements-build.txt     # Build-time Python deps (enables Dependabot)
-├── scripts/
-│   ├── build.sh               # Build script
-│   ├── lint-containerfile.sh  # Containerfile linter (Hadolint)
-│   └── fix-permissions        # OpenShift permission fixer
-├── .github/
-│   └── workflows/
-│       └── ci.yml                    # CI workflow (Hadolint, tests)
-├── docs/
-│   ├── DEVELOPMENT.md         # Development setup and workflow
-│   └── RATIONALE.md           # Why this project exists
-├── .tekton/                   # Konflux pipeline definitions
-├── LICENSE
-└── README.md
+  --build-arg-file cuda/12.8/app.conf \
+  -f cuda/12.8/Containerfile .
 ```
 
 ## Why Two Base Images?
@@ -89,7 +86,7 @@ Both images share consistent configuration:
 ### Python Application
 
 ```dockerfile
-FROM quay.io/opendatahub/odh-midstream-python-base:3.12-ubi9
+FROM quay.io/opendatahub/odh-midstream-python-base:py312
 
 # pip and uv are pre-configured with package indexes
 COPY requirements.txt .
@@ -113,21 +110,40 @@ COPY --chown=1001:0 . .
 CMD ["python", "train.py"]
 ```
 
-## Build Arguments
+## Adding New Versions
 
-Build arguments are defined in config files under `build-args/`:
-
-| Config File | Image |
-|-------------|-------|
-| `build-args/python-app.conf` | Python/CPU |
-| `build-args/cuda-app.conf` | CUDA/GPU |
-
-The build script passes these directly via `--build-arg-file`. To update versions, edit the appropriate `.conf` file and rebuild.
+Use the generation script to create a new version from the template:
 
 ```bash
-# Update versions and rebuild
-vim build-args/python-app.conf
-./scripts/build.sh python
+# Generate Containerfile from template
+./scripts/generate-containerfile.sh <type> <version>
+
+# Example: Add CUDA 13.2
+./scripts/generate-containerfile.sh cuda 13.2
+# Then create cuda/13.2/app.conf with version-specific values
+# Get versions from: https://gitlab.com/nvidia/container-images/cuda/-/tree/master/dist
+
+# Example: Add Python 3.13
+./scripts/generate-containerfile.sh python 3.13
+# Then create python/3.13/app.conf with version-specific values
+```
+
+After adding a new version, also update `.github/workflows/ci.yml`:
+- Add the version to the `matrix.version` array in the corresponding test job
+- Add a version-specific path filter if desired (e.g., `cuda-13-2`)
+
+## Build Arguments
+
+Build arguments are defined in `<type>/<version>/app.conf` files. The build script passes these directly via `--build-arg-file`.
+
+To update package versions:
+
+```bash
+# Edit the config file
+vim <type>/<version>/app.conf
+
+# Rebuild the image
+./scripts/build.sh <type>-<version>
 ```
 
 ## CI/CD
@@ -137,4 +153,3 @@ Images will be built using [Konflux](https://konflux-ci.dev/) pipelines.
 ## License
 
 Apache License 2.0 - See [LICENSE](LICENSE) for details.
-

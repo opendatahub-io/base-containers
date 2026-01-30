@@ -107,7 +107,9 @@ lint_file() {
 
 # Find all Containerfiles/Dockerfiles in the project
 find_containerfiles() {
-    find "${PROJECT_ROOT}" -maxdepth 2 \( -name "Containerfile*" -o -name "Dockerfile*" \) -type f 2>/dev/null | sort
+    # Search in version directories (cuda/12.8/Containerfile, python/3.12/Containerfile)
+    # and templates at root level (Containerfile.*.template)
+    find "${PROJECT_ROOT}" -maxdepth 3 \( -name "Containerfile*" -o -name "Dockerfile*" \) -type f 2>/dev/null | sort
 }
 
 print_usage() {

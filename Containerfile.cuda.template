@@ -1,7 +1,10 @@
 # ODH CUDA Base Image (CentOS Stream 9)
+# CUDA Version: {{CUDA_MAJOR_MINOR_DOT}}
+# Generated from Containerfile.cuda.template - edit template, not this file
+#
 # CentOS Stream 9 required: CUDA packages fail on UBI 9 (missing OpenGL/mesa deps)
-# Usage: ./scripts/build.sh cuda
-# Build args: build-args/cuda-app.conf
+# Usage: ./scripts/build.sh cuda-{{CUDA_MAJOR_MINOR_DOT}}
+# Build args: cuda/{{CUDA_MAJOR_MINOR_DOT}}/app.conf
 
 ARG BASE_IMAGE
 ARG TARGETARCH
@@ -52,7 +55,7 @@ WORKDIR /opt/app-root/bin
 
 # -----------------------------------------------------------------------------
 # CUDA Version Environment
-# Source: https://gitlab.com/nvidia/container-images/cuda/-/tree/master/dist/12.8.1
+# Source: https://gitlab.com/nvidia/container-images/cuda/-/tree/master/dist
 # -----------------------------------------------------------------------------
 ENV NVIDIA_REQUIRE_CUDA=${NVIDIA_REQUIRE_CUDA}
 ENV CUDA_VERSION=${CUDA_VERSION}
@@ -60,15 +63,15 @@ ENV NV_CUDA_CUDART_VERSION=${NV_CUDA_CUDART_VERSION}
 ENV NV_CUDA_LIB_VERSION=${NV_CUDA_LIB_VERSION}
 ENV NV_NVTX_VERSION=${NV_NVTX_VERSION}
 ENV NV_LIBNPP_VERSION=${NV_LIBNPP_VERSION}
-ENV NV_LIBNPP_PACKAGE=libnpp-12-8-${NV_LIBNPP_VERSION}
+ENV NV_LIBNPP_PACKAGE=libnpp-{{CUDA_MAJOR_MINOR}}-${NV_LIBNPP_VERSION}
 ENV NV_LIBCUBLAS_VERSION=${NV_LIBCUBLAS_VERSION}
 ENV NV_LIBNCCL_PACKAGE_NAME=libnccl
 ENV NV_LIBNCCL_PACKAGE_VERSION=${NV_LIBNCCL_PACKAGE_VERSION}
 ENV NV_LIBNCCL_VERSION=${NV_LIBNCCL_VERSION}
 ENV NCCL_VERSION=${NV_LIBNCCL_VERSION}
-ENV NV_LIBNCCL_PACKAGE=${NV_LIBNCCL_PACKAGE_NAME}-${NV_LIBNCCL_PACKAGE_VERSION}+cuda12.8
+ENV NV_LIBNCCL_PACKAGE=${NV_LIBNCCL_PACKAGE_NAME}-${NV_LIBNCCL_PACKAGE_VERSION}+cuda{{CUDA_MAJOR_MINOR_DOT}}
 ENV NV_CUDNN_VERSION=${NV_CUDNN_VERSION}
-ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-12-${NV_CUDNN_VERSION}
+ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-{{CUDA_MAJOR}}-${NV_CUDNN_VERSION}
 
 # -----------------------------------------------------------------------------
 # NVIDIA Repository Setup
@@ -86,7 +89,7 @@ RUN { echo "[cuda-rhel9-${NVARCH}]"; \
 
 # GPG key verification
 RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3b80c87 && \
-    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}/D42D0685.pub | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
+    curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}/D42D0685.pub" | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
     echo "$NVIDIA_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA" | sha256sum -c --strict -
 
 # -----------------------------------------------------------------------------
@@ -95,8 +98,8 @@ RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf upgrade -y --setopt=keepcache=1 && \
     dnf install -y --setopt=keepcache=1 \
-        cuda-cudart-12-8-${NV_CUDA_CUDART_VERSION} \
-        cuda-compat-12-8
+        cuda-cudart-{{CUDA_MAJOR_MINOR}}-${NV_CUDA_CUDART_VERSION} \
+        cuda-compat-{{CUDA_MAJOR_MINOR}}
 
 # Configure NVIDIA libraries path (nvidia-docker 1.0 compatibility)
 RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
@@ -118,14 +121,14 @@ ENV CUDA_MODULE_LOADING=LAZY
 
 # -----------------------------------------------------------------------------
 # CUDA Runtime Libraries
-# Source: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.1/ubi9/runtime/Dockerfile
+# Source: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 \
-        cuda-libraries-12-8-${NV_CUDA_LIB_VERSION} \
-        cuda-nvtx-12-8-${NV_NVTX_VERSION} \
+        cuda-libraries-{{CUDA_MAJOR_MINOR}}-${NV_CUDA_LIB_VERSION} \
+        cuda-nvtx-{{CUDA_MAJOR_MINOR}}-${NV_NVTX_VERSION} \
         ${NV_LIBNPP_PACKAGE} \
-        libcublas-12-8-${NV_LIBCUBLAS_VERSION} \
+        libcublas-{{CUDA_MAJOR_MINOR}}-${NV_LIBCUBLAS_VERSION} \
         ${NV_LIBNCCL_PACKAGE}
 
 # -----------------------------------------------------------------------------
@@ -136,7 +139,7 @@ RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containe
 
 # -----------------------------------------------------------------------------
 # cuDNN
-# Source: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.1/ubi9/runtime/cudnn/Dockerfile
+# Source: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 ${NV_CUDNN_PACKAGE}
@@ -147,7 +150,7 @@ ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 # CUDA Toolkit
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
-    dnf -y install --setopt=keepcache=1 cuda-toolkit-12-8
+    dnf -y install --setopt=keepcache=1 cuda-toolkit-{{CUDA_MAJOR_MINOR}}
 
 # -----------------------------------------------------------------------------
 # Environment (consistent with Python base image)
@@ -169,7 +172,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Override indexes at build time via --build-arg for downstream builds.
 
 ARG PIP_INDEX_URL=https://pypi.org/simple
-ARG PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cu128
+ARG PIP_EXTRA_INDEX_URL
 
 # pip configuration (system-wide) - must be created before installing uv
 RUN mkdir -p /etc/pip && \
@@ -182,7 +185,7 @@ RUN mkdir -p /etc/pip && \
 # Install uv - fast Python package installer
 # https://github.com/astral-sh/uv
 # Version pinned in requirements-build.txt
-COPY requirements-build.txt /tmp/requirements-build.txt
+COPY --chmod=644 --chown=0:0 requirements-build.txt /tmp/requirements-build.txt
 RUN python -m pip install --no-cache-dir -r /tmp/requirements-build.txt && \
     rm /tmp/requirements-build.txt
 
@@ -221,6 +224,7 @@ RUN dnf clean all && \
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG PYTHON_VERSION
 
 LABEL name="odh-midstream-cuda-base" \
       version="${VERSION}" \
@@ -241,7 +245,7 @@ LABEL name="odh-midstream-cuda-base" \
       com.nvidia.cudnn.version="${NV_CUDNN_VERSION}" \
       com.nvidia.nccl.version="${NCCL_VERSION}" \
       com.opendatahub.accelerator="cuda" \
-      com.opendatahub.python="3.12"
+      com.opendatahub.python="${PYTHON_VERSION}"
 
 # -----------------------------------------------------------------------------
 # User Configuration (from notebooks pattern)
@@ -267,7 +271,7 @@ WORKDIR /opt/app-root/src
 #
 # Example Dockerfile that extends this base:
 #
-#   FROM odh-midstream-cuda-base:12.8-py312
+#   FROM odh-midstream-cuda-base:{{CUDA_MAJOR_MINOR_DOT}}-py312
 #
 #   # Install dependencies (pip and uv are pre-configured with package indexes)
 #   COPY requirements.txt .
