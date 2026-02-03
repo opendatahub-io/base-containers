@@ -121,11 +121,13 @@ Use the generation script to create a new version from the template:
 # Example: Add CUDA 13.2
 ./scripts/generate-containerfile.sh cuda 13.2
 # Then create cuda/13.2/app.conf with version-specific values
+# Include CUDA_MAJOR, CUDA_MAJOR_MINOR, CUDA_MAJOR_MINOR_DOT
 # Get versions from: https://gitlab.com/nvidia/container-images/cuda/-/tree/master/dist
 
 # Example: Add Python 3.13
 ./scripts/generate-containerfile.sh python 3.13
 # Then create python/3.13/app.conf with version-specific values
+# Include PYTHON_VERSION and PYTHON_VERSION_NODOT
 ```
 
 After adding a new version, also update `.github/workflows/ci.yml`:

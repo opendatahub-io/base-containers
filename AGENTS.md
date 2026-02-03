@@ -121,9 +121,11 @@ Config files in `<type>/<version>/app.conf` are passed directly to podman via `-
 - Pin package versions via build args, not hardcoded
 - Edit templates (`Containerfile.*.template`), then regenerate version-specific files
 
-### Template Placeholders
-- CUDA templates use: `{{CUDA_MAJOR_MINOR}}` (12-8), `{{CUDA_MAJOR_MINOR_DOT}}` (12.8), `{{CUDA_MAJOR}}` (12)
-- Python templates use: `{{PYTHON_VERSION}}` (3.12), `{{PYTHON_VERSION_NODOT}}` (312)
+### Template Build Args
+- CUDA templates use build args from `cuda/<version>/app.conf`:
+  `CUDA_MAJOR` (12), `CUDA_MAJOR_MINOR` (12-8), `CUDA_MAJOR_MINOR_DOT` (12.8)
+- Python templates use build args from `python/<version>/app.conf`:
+  `PYTHON_VERSION` (3.12), `PYTHON_VERSION_NODOT` (312)
 
 ### Config Files (app.conf)
 - Format: `KEY=value` (no `export`, no `$(...)`)

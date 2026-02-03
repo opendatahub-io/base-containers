@@ -132,7 +132,6 @@ generate_python() {
     # Validate version format
     validate_version "${version}" "python"
 
-    local version_nodot="${version//.}"           # 3.12 -> 312
     local output_dir="${PROJECT_ROOT}/python/${version}"
     local template="${PROJECT_ROOT}/Containerfile.python.template"
     local output="${output_dir}/Containerfile"
@@ -147,14 +146,13 @@ generate_python() {
 
     mkdir -p "${output_dir}"
 
-    sed -e "s/{{PYTHON_VERSION}}/${version}/g" \
-        -e "s/{{PYTHON_VERSION_NODOT}}/${version_nodot}/g" \
-        "${template}" > "${output}"
+    cp "${template}" "${output}"
 
     log_info "Generated: ${output}"
     log_info ""
     log_info "Next steps:"
     log_info "  1. Create ${output_dir}/app.conf with version-specific values"
+    log_info "     (PYTHON_VERSION, PYTHON_VERSION_NODOT)"
     log_info "     (Use python/3.12/app.conf as a reference)"
     log_info "  2. Update BASE_IMAGE to the appropriate UBI Python image"
     log_info "  3. Build and test: ./scripts/build.sh python-${version}"

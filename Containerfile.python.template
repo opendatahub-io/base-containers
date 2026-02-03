@@ -1,11 +1,13 @@
 # ODH Python Base Image (UBI 9)
-# Python Version: {{PYTHON_VERSION}}
+# Python Version: ${PYTHON_VERSION}
 # Generated from Containerfile.python.template - edit template, not this file
 #
-# Usage: ./scripts/build.sh python-{{PYTHON_VERSION}}
-# Build args: python/{{PYTHON_VERSION}}/app.conf
+# Usage: ./scripts/build.sh python-${PYTHON_VERSION}
+# Build args: python/${PYTHON_VERSION}/app.conf
 
 ARG BASE_IMAGE
+ARG PYTHON_VERSION
+ARG PYTHON_VERSION_NODOT
 ARG PIP_INDEX_URL
 ARG PIP_EXTRA_INDEX_URL
 
@@ -19,27 +21,28 @@ FROM ${BASE_IMAGE}
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG PYTHON_VERSION
+ARG PYTHON_VERSION_NODOT
 
-# hadolint ignore=SC1083
 LABEL name="odh-midstream-python-base" \
       version="${VERSION}" \
-      summary="ODH Python {{PYTHON_VERSION}} Base Image" \
-      description="Python {{PYTHON_VERSION}} base image for Open Data Hub workloads" \
-      io.k8s.display-name="ODH Python {{PYTHON_VERSION}} Base" \
-      io.k8s.description="Python {{PYTHON_VERSION}} base image for Open Data Hub workloads" \
-      io.openshift.tags="python,python{{PYTHON_VERSION_NODOT}},odh,ai,ml,ubi9" \
+      summary="ODH Python ${PYTHON_VERSION} Base Image" \
+      description="Python ${PYTHON_VERSION} base image for Open Data Hub workloads" \
+      io.k8s.display-name="ODH Python ${PYTHON_VERSION} Base" \
+      io.k8s.description="Python ${PYTHON_VERSION} base image for Open Data Hub workloads" \
+      io.openshift.tags="python,python${PYTHON_VERSION_NODOT},odh,ai,ml,ubi9" \
       io.openshift.expose-services="" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.title="ODH Python {{PYTHON_VERSION}} Base Image" \
-      org.opencontainers.image.description="Python {{PYTHON_VERSION}} base image for Open Data Hub workloads" \
+      org.opencontainers.image.title="ODH Python ${PYTHON_VERSION} Base Image" \
+      org.opencontainers.image.description="Python ${PYTHON_VERSION} base image for Open Data Hub workloads" \
       org.opencontainers.image.url="https://github.com/opendatahub-io" \
       org.opencontainers.image.source="https://github.com/opendatahub-io/base-containers" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="Open Data Hub" \
       com.opendatahub.accelerator="cpu" \
-      com.opendatahub.python="{{PYTHON_VERSION}}"
+      com.opendatahub.python="${PYTHON_VERSION}"
 
 # -----------------------------------------------------------------------------
 # Environment (from llama-stack-distribution + model-registry patterns)
@@ -130,7 +133,7 @@ WORKDIR /opt/app-root/src
 #
 # Example Dockerfile that extends this base:
 #
-#   FROM odh-midstream-python-base:py{{PYTHON_VERSION_NODOT}}
+#   FROM odh-midstream-python-base:py${PYTHON_VERSION_NODOT}
 #
 #   # Install dependencies (pip and uv are pre-configured with package indexes)
 #   COPY requirements.txt .
