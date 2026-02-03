@@ -3,8 +3,7 @@
 # Generate Containerfile from Template
 # =============================================================================
 #
-# Generates a version-specific Containerfile from the template by replacing
-# placeholder markers with actual version values.
+# Generates a version-specific Containerfile from the template.
 #
 # Usage:
 #   ./scripts/generate-containerfile.sh cuda <version>
@@ -100,8 +99,6 @@ generate_cuda() {
     # Validate version format
     validate_version "${version}" "cuda"
 
-    local major_minor="${version//./-}"           # 12.9 -> 12-9
-    local major="${version%%.*}"                  # 12.9 -> 12
     local output_dir="${PROJECT_ROOT}/cuda/${version}"
     local template="${PROJECT_ROOT}/Containerfile.cuda.template"
     local output="${output_dir}/Containerfile"
@@ -116,15 +113,13 @@ generate_cuda() {
 
     mkdir -p "${output_dir}"
 
-    sed -e "s/{{CUDA_MAJOR_MINOR}}/${major_minor}/g" \
-        -e "s/{{CUDA_MAJOR_MINOR_DOT}}/${version}/g" \
-        -e "s/{{CUDA_MAJOR}}/${major}/g" \
-        "${template}" > "${output}"
+    cp "${template}" "${output}"
 
     log_info "Generated: ${output}"
     log_info ""
     log_info "Next steps:"
     log_info "  1. Create ${output_dir}/app.conf with version-specific values"
+    log_info "     (CUDA_MAJOR, CUDA_MAJOR_MINOR, CUDA_MAJOR_MINOR_DOT)"
     log_info "     (Use cuda/12.8/app.conf as a reference)"
     log_info "  2. Get version values from NVIDIA:"
     log_info "     https://gitlab.com/nvidia/container-images/cuda/-/tree/master/dist/${version}.x"

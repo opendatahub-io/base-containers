@@ -1,13 +1,16 @@
 # ODH CUDA Base Image (CentOS Stream 9)
-# CUDA Version: 13.0
+# CUDA Version: ${CUDA_MAJOR_MINOR_DOT}
 # Generated from Containerfile.cuda.template - edit template, not this file
 #
 # CentOS Stream 9 required: CUDA packages fail on UBI 9 (missing OpenGL/mesa deps)
-# Usage: ./scripts/build.sh cuda-13.0
-# Build args: cuda/13.0/app.conf
+# Usage: ./scripts/build.sh cuda-${CUDA_MAJOR_MINOR_DOT}
+# Build args: cuda/${CUDA_MAJOR_MINOR_DOT}/app.conf
 
 ARG BASE_IMAGE
 ARG TARGETARCH
+ARG CUDA_MAJOR
+ARG CUDA_MAJOR_MINOR
+ARG CUDA_MAJOR_MINOR_DOT
 ARG CUDA_VERSION
 ARG NV_CUDA_CUDART_VERSION
 ARG NV_CUDA_LIB_VERSION
@@ -39,6 +42,9 @@ ENV NVARCH=sbsa
 FROM cuda-base-${TARGETARCH} AS cuda-base
 
 ARG TARGETARCH
+ARG CUDA_MAJOR
+ARG CUDA_MAJOR_MINOR
+ARG CUDA_MAJOR_MINOR_DOT
 ARG NVIDIA_REQUIRE_CUDA
 ARG CUDA_VERSION
 ARG NV_CUDA_CUDART_VERSION
@@ -63,15 +69,15 @@ ENV NV_CUDA_CUDART_VERSION=${NV_CUDA_CUDART_VERSION}
 ENV NV_CUDA_LIB_VERSION=${NV_CUDA_LIB_VERSION}
 ENV NV_NVTX_VERSION=${NV_NVTX_VERSION}
 ENV NV_LIBNPP_VERSION=${NV_LIBNPP_VERSION}
-ENV NV_LIBNPP_PACKAGE=libnpp-13-0-${NV_LIBNPP_VERSION}
+ENV NV_LIBNPP_PACKAGE=libnpp-${CUDA_MAJOR_MINOR}-${NV_LIBNPP_VERSION}
 ENV NV_LIBCUBLAS_VERSION=${NV_LIBCUBLAS_VERSION}
 ENV NV_LIBNCCL_PACKAGE_NAME=libnccl
 ENV NV_LIBNCCL_PACKAGE_VERSION=${NV_LIBNCCL_PACKAGE_VERSION}
 ENV NV_LIBNCCL_VERSION=${NV_LIBNCCL_VERSION}
 ENV NCCL_VERSION=${NV_LIBNCCL_VERSION}
-ENV NV_LIBNCCL_PACKAGE=${NV_LIBNCCL_PACKAGE_NAME}-${NV_LIBNCCL_PACKAGE_VERSION}+cuda13.0
+ENV NV_LIBNCCL_PACKAGE=${NV_LIBNCCL_PACKAGE_NAME}-${NV_LIBNCCL_PACKAGE_VERSION}+cuda${CUDA_MAJOR_MINOR_DOT}
 ENV NV_CUDNN_VERSION=${NV_CUDNN_VERSION}
-ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-13-${NV_CUDNN_VERSION}
+ENV NV_CUDNN_PACKAGE=libcudnn9-cuda-${CUDA_MAJOR}-${NV_CUDNN_VERSION}
 
 # -----------------------------------------------------------------------------
 # NVIDIA Repository Setup
@@ -99,8 +105,8 @@ RUN { echo "[cuda-rhel9-${NVARCH}]"; \
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf upgrade -y --setopt=keepcache=1 && \
     dnf install -y --setopt=keepcache=1 \
-        cuda-cudart-13-0-${NV_CUDA_CUDART_VERSION} \
-        cuda-compat-13-0
+        cuda-cudart-${CUDA_MAJOR_MINOR}-${NV_CUDA_CUDART_VERSION} \
+        cuda-compat-${CUDA_MAJOR_MINOR}
 
 # Configure NVIDIA libraries path (nvidia-docker 1.0 compatibility)
 RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
@@ -126,10 +132,10 @@ ENV CUDA_MODULE_LOADING=LAZY
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 \
-        cuda-libraries-13-0-${NV_CUDA_LIB_VERSION} \
-        cuda-nvtx-13-0-${NV_NVTX_VERSION} \
+        cuda-libraries-${CUDA_MAJOR_MINOR}-${NV_CUDA_LIB_VERSION} \
+        cuda-nvtx-${CUDA_MAJOR_MINOR}-${NV_NVTX_VERSION} \
         ${NV_LIBNPP_PACKAGE} \
-        libcublas-13-0-${NV_LIBCUBLAS_VERSION} \
+        libcublas-${CUDA_MAJOR_MINOR}-${NV_LIBCUBLAS_VERSION} \
         ${NV_LIBNCCL_PACKAGE}
 
 # -----------------------------------------------------------------------------
@@ -151,7 +157,7 @@ ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 # CUDA Toolkit
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
-    dnf -y install --setopt=keepcache=1 cuda-toolkit-13-0
+    dnf -y install --setopt=keepcache=1 cuda-toolkit-${CUDA_MAJOR_MINOR}
 
 # -----------------------------------------------------------------------------
 # Environment (consistent with Python base image)
@@ -272,7 +278,7 @@ WORKDIR /opt/app-root/src
 #
 # Example Dockerfile that extends this base:
 #
-#   FROM odh-midstream-cuda-base:13.0-py312
+#   FROM odh-midstream-cuda-base:${CUDA_MAJOR_MINOR_DOT}-py312
 #
 #   # Install dependencies (pip and uv are pre-configured with package indexes)
 #   COPY requirements.txt .
