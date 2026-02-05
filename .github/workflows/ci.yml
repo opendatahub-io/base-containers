@@ -16,6 +16,8 @@ jobs:
     outputs:
       any-cuda: ${{ steps.filter.outputs['any-cuda'] }}
       any-python: ${{ steps.filter.outputs['any-python'] }}
+      cuda-versions: ${{ steps.cuda-versions.outputs.versions }}
+      python-versions: ${{ steps.python-versions.outputs.versions }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,21 +28,70 @@ jobs:
         uses: dorny/paths-filter@v3
         id: filter
         with:
+          list-files: json
           filters: |
             any-cuda:
-              - 'cuda/**'
-              - 'Containerfile.cuda.template'
-              - 'scripts/build.sh'
-              - 'tests/test_cuda_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
+              - 'cuda/**/Containerfile'
+              - 'cuda/**/app.conf'
+              - scripts/fix-permissions
+              - requirements-build.txt
             any-python:
-              - 'python/**'
-              - 'Containerfile.python.template'
-              - 'scripts/build.sh'
-              - 'tests/test_python_image.py'
-              - 'tests/test_common.py'
-              - 'tests/conftest.py'
+              - 'python/**/Containerfile'
+              - 'python/**/app.conf'
+              - scripts/fix-permissions
+              - requirements-build.txt
+
+      - name: Build CUDA version matrix
+        id: cuda-versions
+        if: steps.filter.outputs.any-cuda == 'true'
+        run: |
+          CHANGED_FILES='${{ steps.filter.outputs.any-cuda_files }}'
+          
+          # Check if common files changed (affects all versions)
+          if echo "$CHANGED_FILES" | grep -qE 'requirements-build\.txt|scripts/fix-permissions'; then
+            echo "Common files changed - including all CUDA versions"
+            # Get all available CUDA versions from directory structure
+            VERSIONS=$(find cuda -maxdepth 1 -type d -name '[0-9]*.[0-9]*' \
+              | sed 's|cuda/||' \
+              | sort -V \
+              | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}')
+          else
+            # Extract only specific versions from changed cuda/<version>/{Containerfile,app.conf} paths
+            VERSIONS=$(echo "$CHANGED_FILES" \
+              | tr -d '[]" ' \
+              | tr ',' '\n' \
+              | awk -F/ '$1=="cuda" && $2 ~ /^[0-9]+\.[0-9]+$/ && ($3=="Containerfile" || $3=="app.conf") {print $2}' \
+              | sort -uV \
+              | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}')
+          fi
+          
+          echo "versions=${VERSIONS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Python version matrix
+        id: python-versions
+        if: steps.filter.outputs.any-python == 'true'
+        run: |
+          CHANGED_FILES='${{ steps.filter.outputs.any-python_files }}'
+          
+          # Check if common files changed (affects all versions)
+          if echo "$CHANGED_FILES" | grep -qE 'requirements-build\.txt|scripts/fix-permissions'; then
+            echo "Common files changed - including all Python versions"
+            # Get all available Python versions from directory structure
+            VERSIONS=$(find python -maxdepth 1 -type d -name '[0-9]*.[0-9]*' \
+              | sed 's|python/||' \
+              | sort -V \
+              | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}')
+          else
+            # Extract only specific versions from changed python/<version>/{Containerfile,app.conf} paths
+            VERSIONS=$(echo "$CHANGED_FILES" \
+              | tr -d '[]" ' \
+              | tr ',' '\n' \
+              | awk -F/ '$1=="python" && $2 ~ /^[0-9]+\.[0-9]+$/ && ($3=="Containerfile" || $3=="app.conf") {print $2}' \
+              | sort -uV \
+              | awk 'BEGIN{printf "["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]"}')
+          fi
+          
+          echo "versions=${VERSIONS}" >> "$GITHUB_OUTPUT"
 
   lint:
     name: Lint (ruff)
@@ -130,12 +181,14 @@ jobs:
     if: |
       always() &&
       needs.changes.outputs['any-python'] == 'true' &&
+      needs.changes.outputs.python-versions != '' &&
+      needs.changes.outputs.python-versions != '[]' &&
       needs.lint.result == 'success' &&
       needs.type-check.result == 'success' &&
       (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
     strategy:
       matrix:
-        version: ["3.12"]
+        version: ${{ fromJSON(needs.changes.outputs.python-versions || '[]') }}
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -175,12 +228,14 @@ jobs:
     if: |
       always() &&
       needs.changes.outputs['any-cuda'] == 'true' &&
+      needs.changes.outputs.cuda-versions != '' &&
+      needs.changes.outputs.cuda-versions != '[]' &&
       needs.lint.result == 'success' &&
       needs.type-check.result == 'success' &&
       (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
     strategy:
       matrix:
-        version: ["12.8", "12.9", "13.0", "13.1"]
+        version: ${{ fromJSON(needs.changes.outputs.cuda-versions || '[]') }}
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
