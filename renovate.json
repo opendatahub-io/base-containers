@@ -6,7 +6,8 @@
   ],
   "extends": [
     "config:recommended",
-    "docker:pinDigests"
+    "docker:pinDigests",
+    "workarounds:supportRedHatImageVersion"
   ],
   "labels": ["dependencies"],
   "branchPrefix": "konflux/mintmaker/",
@@ -22,22 +23,21 @@
         "BASE_IMAGE=(?<depName>[^:]+):(?<currentValue>[^@\\s]+)(@(?<currentDigest>sha256:[a-f0-9]+))?"
       ],
       "autoReplaceStringTemplate": "BASE_IMAGE={{depName}}:{{newValue}}{{#if newDigest}}@{{newDigest}}{{/if}}",
-      "datasourceTemplate": "docker",
-      "versioningTemplate": "docker"
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [
     {
-      "description": "Base image updates for python/*/app.conf",
+      "description": "Group all base image updates together",
       "matchManagers": ["custom.regex"],
-      "matchDepNames": ["registry.access.redhat.com/ubi9/python-312"],
-      "groupName": "ubi-python-image"
+      "groupName": "base-images",
+      "separateMajorMinor": false
     },
     {
-      "description": "Base image updates for cuda/*/app.conf",
-      "matchManagers": ["custom.regex"],
-      "matchDepNames": ["quay.io/sclorg/python-312-c9s"],
-      "groupName": "sclorg-python-image"
+      "description": "Use Red Hat versioning for UBI images",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["/^registry\\.access\\.redhat\\.com/"],
+      "versioning": "redhat"
     }
   ]
 }
