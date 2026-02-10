@@ -23,6 +23,8 @@ metadata:
   name: odh-midstream-cuda-base-12-9-on-pull-request
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: "2h0m0s"
   params:
   - name: git-url
     value: '{{source_url}}'
