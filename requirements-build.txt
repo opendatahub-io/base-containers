@@ -2,5 +2,5 @@
 # These are installed during container image build, not at runtime.
 # Dependabot/Renovate can automatically update these versions.
 
-uv==0.10.0
+uv==0.10.1
 
