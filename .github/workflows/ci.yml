@@ -261,6 +261,29 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      # Additional cleanup (complements jlumbroso action)
+      # Referenced from: https://github.com/opendatahub-io/notebooks/.github/actions/free-up-disk-space
+      - name: Additional disk cleanup
+        run: |
+          # Run cleanup in parallel for speed
+          sudo rm -rf /usr/local/.ghcup &
+          sudo rm -rf /usr/local/share/boost &
+          sudo rm -rf /usr/local/lib/node_modules &
+          sudo rm -rf /opt/hostedtoolcache/CodeQL &
+          sudo rm -rf /opt/hostedtoolcache/go &
+          sudo rm -rf /opt/hostedtoolcache/Ruby &
+          sudo rm -rf /opt/hostedtoolcache/PyPy &
+          wait
+          
+          # Show available space
+          echo "=== Available disk space ==="
+          df -h /
+          AVAILABLE=$(df -BG / | tail -1 | awk '{print $4}' | tr -d 'G')
+          echo "Available: ${AVAILABLE}GB"
+          if [ "$AVAILABLE" -lt 30 ]; then
+            echo "::warning::Less than 30GB available for CUDA build"
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
