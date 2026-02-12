@@ -248,6 +248,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Debug: Show disk space BEFORE any cleanup
+      - name: Disk space before cleanup
+        run: |
+          echo "=== Disk Space BEFORE Cleanup ==="
+          df -h /
+          echo ""
+          echo "=== Largest directories in /opt ==="
+          sudo du -sh /opt/* 2>/dev/null | sort -hr | head -10 || true
+          echo ""
+          echo "=== Largest in /usr/local ==="
+          sudo du -sh /usr/local/* 2>/dev/null | sort -hr | head -10 || true
+
       # Free disk space for CUDA build (~14GB image)
       # https://github.com/jlumbroso/free-disk-space
       - name: Free disk space
@@ -304,6 +316,19 @@ jobs:
 
       - name: Build CUDA ${{ matrix.version }} image
         run: ./scripts/build.sh cuda-${{ matrix.version }}
+
+      # Debug: Show disk state after build (runs even on failure)
+      - name: Disk space after build
+        if: always()
+        run: |
+          echo "=== Disk Space After Build ==="
+          df -h /
+          echo ""
+          echo "=== Podman Images ==="
+          podman images 2>/dev/null || true
+          echo ""
+          echo "=== Podman System Storage ==="
+          podman system df 2>/dev/null || true
 
       - name: Run CUDA image tests
         env:
