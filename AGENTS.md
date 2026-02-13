@@ -36,7 +36,8 @@ base-containers/
 ├── requirements-build.txt                # Build-time deps (uv) - Dependabot updates
 ├── scripts/
 │   ├── build.sh                          # Main build script
-│   ├── generate-containerfile.sh         # Generate Containerfile from template
+│   ├── generate-containerfile.sh         # Generate Containerfile + app.conf from template
+│   ├── update-default-python-version.sh  # Update default Python version in CI/tooling
 │   ├── lint-containerfile.sh             # Containerfile linter (Hadolint)
 │   └── fix-permissions                   # OpenShift permission fixer
 ├── .github/
@@ -79,14 +80,14 @@ Hadolint configuration is in `.hadolint.yaml`. Run linting before submitting PRs
 
 ### Adding a New CUDA Version
 
-1. Generate the Containerfile from template:
+1. Generate the Containerfile and starter app.conf from template:
    ```bash
    ./scripts/generate-containerfile.sh cuda 13.2
    ```
 
-2. Create the app.conf with version-specific values (use an existing version as reference):
+2. Update NVIDIA-specific versions in `cuda/13.2/app.conf` (lines marked with `# TODO`):
    - Get version numbers from [NVIDIA CUDA Dockerfiles](https://gitlab.com/nvidia/container-images/cuda/-/tree/master/dist)
-   - Create `cuda/13.2/app.conf`
+   - Pin the BASE_IMAGE digest
 
 3. Build and test:
    ```bash
@@ -95,18 +96,23 @@ Hadolint configuration is in `.hadolint.yaml`. Run linting before submitting PRs
 
 ### Adding a New Python Version
 
-1. Generate the Containerfile from template:
+1. Generate the Containerfile and starter app.conf from template:
    ```bash
    ./scripts/generate-containerfile.sh python 3.13
    ```
 
-2. Create the app.conf with version-specific values:
-   - Update BASE_IMAGE to the appropriate UBI Python image
-   - Create `python/3.13/app.conf`
+2. Review `python/3.13/app.conf` (version strings are updated automatically):
+   - Pin the BASE_IMAGE digest
+   - Verify all values are correct
 
 3. Build and test:
    ```bash
    ./scripts/build.sh python-3.13
+   ```
+
+4. (Optional) Make it the project default across CI and tooling:
+   ```bash
+   ./scripts/update-default-python-version.sh 3.13 --apply
    ```
 
 ## Build System
