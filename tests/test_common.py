@@ -19,10 +19,15 @@ def container(request):
 
 
 def test_python_version(container):
-    """Verify Python 3.12 is installed and working."""
+    """Verify installed Python version matches the com.opendatahub.python label."""
+    expected = container.get_labels().get("com.opendatahub.python", "")
+    assert expected, "com.opendatahub.python label must be set"
+
     result = container.run("python --version")
     assert result.returncode == 0
-    assert "Python 3.12" in result.stdout
+    assert f"Python {expected}" in result.stdout, (
+        f"Expected Python {expected} (from label), got: {result.stdout.strip()}"
+    )
 
 
 def test_pip_available(container):
