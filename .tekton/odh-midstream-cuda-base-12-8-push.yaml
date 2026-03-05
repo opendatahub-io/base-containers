@@ -574,14 +574,59 @@ spec:
         operator: in
         values:
         - "false"
+    - name: generate-image-tag
+      params:
+      - name: IMAGE_URL
+        value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+      runAfter:
+      - build-image-index
+      taskSpec:
+        params:
+        - name: IMAGE_URL
+          type: string
+        - name: SOURCE_ARTIFACT
+          type: string
+        results:
+        - name: VERSION_TAG
+          type: string
+        volumes:
+        - name: workdir
+          emptyDir: {}
+        steps:
+        - name: use-trusted-artifact
+          image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:15d7dc86012e41b10d1eb37679ec03ee75c96436224fadd0938a49dc537aa4ad
+          args:
+          - use
+          - $(params.SOURCE_ARTIFACT)=/var/workdir/source
+          volumeMounts:
+          - mountPath: /var/workdir
+            name: workdir
+        - name: generate-tag
+          image: quay.io/konflux-ci/task-runner:1.4.1@sha256:d9feec6f2ce9b10cfb76b45ea14f83b5ed9f231de7d6083291550aebe8eb09ea
+          volumeMounts:
+          - mountPath: /var/workdir
+            name: workdir
+          script: |
+            #!/usr/bin/env bash
+            set -euo pipefail
+            VERSION_TAG=$(bash /var/workdir/source/scripts/generate-tag.sh "$(params.IMAGE_URL)")
+            echo -n "${VERSION_TAG}" > /tekton/results/VERSION_TAG
+            echo "Generated version tag: ${VERSION_TAG}"
     - name: apply-tags
       params:
       - name: IMAGE_URL
         value: $(tasks.build-image-index.results.IMAGE_URL)
       - name: IMAGE_DIGEST
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      - name: ADDITIONAL_TAGS
+        value:
+        - $(tasks.generate-image-tag.results.VERSION_TAG)
+        - latest
       runAfter:
       - build-image-index
+      - generate-image-tag
       taskRef:
         params:
         - name: name
