@@ -2,25 +2,19 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <IMAGE_URL>" >&2
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <IMAGE_URL> [SOURCE_DIR]" >&2
   exit 1
 fi
 
 IMAGE_URL="$1"
-REPO_URL="${IMAGE_URL%%:*}"
-TODAY=$(date -u +%Y%m%d)
+SOURCE_DIR="${2:-$(pwd)}"
 MAJOR=1
 
-TAGS_JSON=$(skopeo list-tags "docker://${REPO_URL}" 2>/dev/null || echo '{"Tags":[]}')
+COMMIT_DATE=$(git -C "${SOURCE_DIR}" log -1 --format="%ad" --date=format:"%Y%m%d" HEAD)
+# Count commits on the same day that are ancestors of HEAD (i.e., came before it).
+# This gives a deterministic, sequential build number from git history — no registry access needed.
+BUILD_NUM=$(git -C "${SOURCE_DIR}" log HEAD^ --format="%ad" --date=format:"%Y%m%d" 2>/dev/null \
+  | grep -c "^${COMMIT_DATE}$" || true)
 
-# Extract tags of the form "1.YYYYMMDD.N" that match today's date.
-MATCHING=$(grep -oE "1\.${TODAY}\.[0-9]+" <<< "${TAGS_JSON}" || true)
-
-NEXT_BUILD=0
-if [[ -n "${MATCHING}" ]]; then
-  MAX_BUILD=$(grep -oE '[0-9]+$' <<< "${MATCHING}" | sort -n | tail -1)
-  NEXT_BUILD=$((MAX_BUILD + 1))
-fi
-
-echo -n "${MAJOR}.${TODAY}.${NEXT_BUILD}"
+echo -n "${MAJOR}.${COMMIT_DATE}.${BUILD_NUM}"
