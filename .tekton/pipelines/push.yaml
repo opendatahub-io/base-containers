@@ -571,7 +571,7 @@ spec:
         script: |
           #!/usr/bin/env bash
           set -euo pipefail
-          VERSION_TAG=$(bash /var/workdir/source/scripts/generate-tag.sh /var/workdir/source)
+          VERSION_TAG=$(bash /var/workdir/source/scripts/generate-tag.sh HEAD /var/workdir/source)
           echo -n "${VERSION_TAG}" > /tekton/results/VERSION_TAG
           echo "Generated version tag: ${VERSION_TAG}"
   - name: apply-tags
