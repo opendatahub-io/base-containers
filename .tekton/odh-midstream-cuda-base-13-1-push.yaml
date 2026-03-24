@@ -10,7 +10,6 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" && target_branch == "main" && (
         'cuda/13.1/**'.pathChanged() ||
-        'scripts/generate-tag.sh'.pathChanged() ||
         'requirements-build.txt'.pathChanged() ||
         'scripts/fix-permissions'.pathChanged() ||
         '.dockerignore'.pathChanged() ||
