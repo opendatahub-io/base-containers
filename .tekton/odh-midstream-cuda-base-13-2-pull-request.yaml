@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/base-containers?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request" && target_branch == "main" && (
+        'cuda/13.2/**'.pathChanged() ||
+        'requirements-build.txt'.pathChanged() ||
+        'scripts/fix-permissions'.pathChanged() ||
+        '.dockerignore'.pathChanged() ||
+        '.tekton/odh-midstream-cuda-base-13-2-pull-request.yaml'.pathChanged()
+      )
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: odh-base-containers
+    appstudio.openshift.io/component: odh-midstream-cuda-base-13-2
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-midstream-cuda-base-13-2-on-pull-request
+  namespace: open-data-hub-tenant
+spec:
+  timeouts:
+    pipeline: "2h0m0s"
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/opendatahub/odh-midstream-cuda-base-13-2:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
+  - name: build-platforms
+    value:
+    - linux/x86_64
+  - name: dockerfile
+    value: cuda/13.2/Containerfile
+  - name: build-args-file
+    value: cuda/13.2/app.conf
+  pipelineRef:
+    name: odh-base-containers-pull-request
+  taskRunSpecs:
+    - pipelineTaskName: ecosystem-cert-preflight-checks
+      stepSpecs:
+        - name: app-check
+          computeResources:
+            requests:
+              memory: 8Gi
+              cpu: '2'
+            limits:
+              memory: 12Gi
+              cpu: '4'
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-midstream-cuda-base-13-2
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}
