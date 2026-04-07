@@ -43,6 +43,26 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
+# Validate version format to prevent path traversal (e.g., ../../python/3.12)
+validate_version() {
+    local version="$1"
+    local type="$2"
+    if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        log_error "Invalid ${type} version format: '${version}' (expected X.Y)"
+        exit 1
+    fi
+}
+
+# ROCm packages are only available for x86_64
+require_rocm_arch() {
+    local arch
+    arch=$(get_target_arch)
+    if [[ "${arch}" != "amd64" ]]; then
+        log_error "ROCm builds are only supported on x86_64/amd64 hosts (detected: ${arch})"
+        exit 1
+    fi
+}
+
 # Detect target architecture (maps uname -m to OCI arch names)
 get_target_arch() {
     local arch
@@ -219,6 +239,7 @@ main() {
         # Specific CUDA version (cuda-12.8, cuda-13.0, etc.)
         cuda-*)
             local version="${target#cuda-}"
+            validate_version "${version}" "CUDA"
             if [[ ! -d "${PROJECT_ROOT}/cuda/${version}" ]]; then
                 log_error "CUDA version ${version} not found in ${PROJECT_ROOT}/cuda/"
                 log_info "Available versions: $(get_all_versions cuda | tr '\n' ' ')"
@@ -229,7 +250,9 @@ main() {
 
         # Specific ROCm version (rocm-6.4, etc.)
         rocm-*)
+            require_rocm_arch
             local version="${target#rocm-}"
+            validate_version "${version}" "ROCm"
             if [[ ! -d "${PROJECT_ROOT}/rocm/${version}" ]]; then
                 log_error "ROCm version ${version} not found in ${PROJECT_ROOT}/rocm/"
                 log_info "Available versions: $(get_all_versions rocm | tr '\n' ' ')"
@@ -241,6 +264,7 @@ main() {
         # Specific Python version (python-3.12, etc.)
         python-*)
             local version="${target#python-}"
+            validate_version "${version}" "Python"
             if [[ ! -d "${PROJECT_ROOT}/python/${version}" ]]; then
                 log_error "Python version ${version} not found in ${PROJECT_ROOT}/python/"
                 log_info "Available versions: $(get_all_versions python | tr '\n' ' ')"
@@ -256,6 +280,7 @@ main() {
 
         # All ROCm versions
         rocm)
+            require_rocm_arch
             build_all_of_type "rocm"
             ;;
 
@@ -268,7 +293,11 @@ main() {
         all)
             build_all_of_type "python"
             build_all_of_type "cuda"
-            build_all_of_type "rocm"
+            if [[ "$(get_target_arch)" == "amd64" ]]; then
+                build_all_of_type "rocm"
+            else
+                log_warn "Skipping ROCm builds (only supported on x86_64/amd64)"
+            fi
             ;;
 
         -h|--help|help)
