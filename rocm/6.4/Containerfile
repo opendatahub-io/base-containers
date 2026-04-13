@@ -11,6 +11,7 @@ ARG ROCM_MAJOR
 ARG ROCM_MAJOR_MINOR
 ARG ROCM_MAJOR_MINOR_DOT
 ARG ROCM_VERSION
+ARG RELEASEVER
 
 # Build metadata for OCI labels
 ARG BUILD_DATE
@@ -26,6 +27,7 @@ ARG ROCM_MAJOR
 ARG ROCM_MAJOR_MINOR
 ARG ROCM_MAJOR_MINOR_DOT
 ARG ROCM_VERSION
+ARG RELEASEVER
 
 USER 0
 WORKDIR /opt/app-root/bin
@@ -48,13 +50,44 @@ RUN ROCM_GPGKEY_SUM=2de99e2354646a90d9903e2a669fc4e36b02c1bbff7075c481e12d7edab2
     curl -fsSL "https://repo.radeon.com/rocm/rocm.gpg.key" > /etc/pki/rpm-gpg/RPM-GPG-KEY-ROCM && \
     echo "$ROCM_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-ROCM" | sha256sum -c --strict -
 
-# Create repo config pointing to locally verified key
+# AMD Repository Configuration
+# Three AMD repos exist; which ones are needed depends on the ROCm major version:
+#   ROCm main:  always enabled (core ROCm packages)
+#   AMDGPU:     enabled for 6.x (GPU driver/runtime packages)
+#   Graphics:   enabled for 7.x+ (replaces AMDGPU starting in 7.x)
+# All repos share the same GPG key.
 # priority=150: prefer base OS packages over AMD's (e.g., llvm*-libs)
 # to avoid conflicts with packages that depend on RHEL's LLVM
-RUN { echo "[rocm-el9]"; \
+# RELEASEVER: AMD repos require a specific RHEL minor version (e.g., 9.4);
+# CentOS Stream 9 reports VERSION_ID=9 which has no matching repo path.
+RUN if ! [ "${ROCM_MAJOR}" -eq "${ROCM_MAJOR}" ] 2>/dev/null; then \
+      echo "ERROR: ROCM_MAJOR must be a number, got '${ROCM_MAJOR}'" >&2; exit 1; \
+    fi && \
+    if ! echo "${RELEASEVER}" | grep -qE '^[0-9]+\.[0-9]+$'; then \
+      echo "ERROR: RELEASEVER must be in X.Y format (e.g., 9.4, 9.6), got '${RELEASEVER}'" >&2; exit 1; \
+    fi && \
+    AMDGPU_ENABLED=$([ "${ROCM_MAJOR}" -lt 7 ] && echo 1 || echo 0) && \
+    GRAPHICS_ENABLED=$([ "${ROCM_MAJOR}" -ge 7 ] && echo 1 || echo 0) && \
+    { echo "[rocm-el9]"; \
       echo "name=ROCm ${ROCM_VERSION} for EL9"; \
       echo "baseurl=https://repo.radeon.com/rocm/el9/${ROCM_VERSION}/main/"; \
       echo "enabled=1"; \
+      echo "priority=150"; \
+      echo "gpgcheck=1"; \
+      echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ROCM"; \
+      echo ""; \
+      echo "[amdgpu]"; \
+      echo "name=AMDGPU ${ROCM_VERSION} for RHEL ${RELEASEVER}"; \
+      echo "baseurl=https://repo.radeon.com/amdgpu/${ROCM_VERSION}/rhel/${RELEASEVER}/main/x86_64/"; \
+      echo "enabled=${AMDGPU_ENABLED}"; \
+      echo "priority=150"; \
+      echo "gpgcheck=1"; \
+      echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ROCM"; \
+      echo ""; \
+      echo "[amd-graphics]"; \
+      echo "name=AMD Graphics ${ROCM_VERSION} for EL ${RELEASEVER}"; \
+      echo "baseurl=https://repo.radeon.com/graphics/${ROCM_VERSION}/el/${RELEASEVER}/main/x86_64/"; \
+      echo "enabled=${GRAPHICS_ENABLED}"; \
       echo "priority=150"; \
       echo "gpgcheck=1"; \
       echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ROCM"; \
