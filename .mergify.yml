@@ -1,0 +1,25 @@
+# Mergify Configuration for ODH Base Containers
+# https://docs.mergify.com/configuration/file-format/
+
+pull_request_rules:
+  - name: Auto-merge when all conditions met
+    conditions:
+      - "#approved-reviews-by>=1"
+      - "#changes-requested-reviews-by=0"
+      - "-draft"
+      - "base=main"
+      - "label!=do-not-merge"
+      - "-conflict"
+    actions:
+      merge:
+        method: merge
+
+  - name: Ping author on conflicts
+    conditions:
+      - "conflict"
+      - "-closed"
+    actions:
+      comment:
+        message: |
+          This pull request has merge conflicts that must be resolved before it can be merged.
+          @{{ author }} please rebase your branch.
