@@ -56,7 +56,8 @@ Provide **common base images** that ODH repositories can build upon:
 | Base Image | Use Case |
 |------------|----------|
 | `Containerfile.python` | CPU workloads, web services |
-| `Containerfile.cuda` | GPU workloads, model training (multiple CUDA versions: 12.8, 12.9, 13.0, 13.1, 13.2) |
+| `Containerfile.cuda` | GPU workloads, model training on NVIDIA hardware (multiple CUDA versions: 12.8, 12.9, 13.0, 13.1, 13.2) |
+| `Containerfile.rocm` | GPU workloads, model training on AMD hardware (ROCm 6.4, x86_64 only) |
 
 ### Benefits
 
@@ -110,6 +111,7 @@ This approach lets consumers pick the CUDA version that matches their needs:
 |-------|---------|--------|
 | Python | UBI 9 | Smaller footprint, Red Hat supported |
 | CUDA | CentOS Stream 9 | CUDA requires OpenGL/mesa libs not in UBI 9 |
+| ROCm | CentOS Stream 9 | ROCm packages need CentOS Stream 9 / RHEL 9 repos |
 
 CUDA packages fail on UBI 9 due to missing dependencies. CentOS Stream 9 provides the required libraries. See [RHAIENG-1532](https://issues.redhat.com/browse/RHAIENG-1532).
 
