@@ -42,6 +42,20 @@ spec:
   pipelineRef:
     name: odh-base-containers-push
   taskRunSpecs:
+    - pipelineTaskName: clair-scan
+      stepSpecs:
+        - name: get-vulnerabilities
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 8Gi
+        - name: oci-attach-report
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 8Gi
     - pipelineTaskName: ecosystem-cert-preflight-checks
       stepSpecs:
         - name: app-check
