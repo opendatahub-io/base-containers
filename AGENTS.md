@@ -8,7 +8,7 @@ This repository provides standardized Containerfiles for building Open Data Hub 
 |--------|------------------|------------------------|
 | Python | UBI 9            | 3.12                   |
 | CUDA   | CentOS Stream 9  | 12.8, 12.9, 13.0, 13.1, 13.2 |
-| ROCm   | CentOS Stream 9  | 6.4                    |
+| ROCm   | CentOS Stream 9  | 6.4, 7.1               |
 
 ## Repository Structure
 
@@ -31,9 +31,12 @@ base-containers/
 │       ├── Containerfile
 │       └── app.conf
 ├── rocm/                                 # ROCm version directories
-│   └── 6.4/
-│       ├── Containerfile                 # ROCm 6.4 Containerfile
-│       └── app.conf                      # ROCm 6.4 build arguments
+│   ├── 6.4/
+│   │   ├── Containerfile                 # ROCm 6.4 Containerfile
+│   │   └── app.conf                      # ROCm 6.4 build arguments
+│   └── 7.1/
+│       ├── Containerfile                 # ROCm 7.1 Containerfile
+│       └── app.conf                      # ROCm 7.1 build arguments
 ├── python/                               # Python version directories
 │   └── 3.12/
 │       ├── Containerfile                 # Python 3.12 Containerfile
@@ -81,6 +84,7 @@ base-containers/
 ./scripts/build.sh cuda-13.1              # Build CUDA 13.1 image
 ./scripts/build.sh cuda-13.2              # Build CUDA 13.2 image
 ./scripts/build.sh rocm-6.4               # Build ROCm 6.4 image
+./scripts/build.sh rocm-7.1               # Build ROCm 7.1 image
 ./scripts/build.sh python-3.12            # Build Python 3.12 image
 
 # Build all versions of a type

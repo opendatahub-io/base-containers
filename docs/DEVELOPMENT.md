@@ -116,7 +116,7 @@ tox -e test
 
 ```bash
 # Run all tests
-PYTHON_IMAGE=<image:tag> CUDA_IMAGE=<image:tag> pytest tests/ -v
+PYTHON_IMAGE=<image:tag> CUDA_IMAGE=<image:tag> ROCM_IMAGE=<image:tag> pytest tests/ -v
 
 # Run only Python image tests
 PYTHON_IMAGE=<image:tag> pytest tests/test_python_image.py tests/test_common.py -v
@@ -137,7 +137,7 @@ ROCM_IMAGE=<image:tag> pytest tests/test_rocm_image.py tests/test_common.py -v
 | `ROCM_IMAGE` | ROCm base image to test (x86_64 only) | `quay.io/opendatahub/odh-midstream-rocm-base-6-4` |
 | `PYTHON_VERSION` | Expected Python version for validation | `3.12` |
 | `CUDA_VERSION` | Expected CUDA version for validation | `12.8`, `12.9`, `13.0`, `13.1`, `13.2` |
-| `ROCM_VERSION` | Expected ROCm version for validation | `6.4` |
+| `ROCM_VERSION` | Expected ROCm version for validation | `6.4`, `7.1` |
 
 If `PYTHON_IMAGE`, `CUDA_IMAGE`, or `ROCM_IMAGE` is not set, the corresponding tests will be skipped.
 If `PYTHON_VERSION`, `CUDA_VERSION`, or `ROCM_VERSION` is not set, version validation tests will be skipped with a message.

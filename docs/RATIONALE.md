@@ -57,7 +57,7 @@ Provide **common base images** that ODH repositories can build upon:
 |------------|----------|
 | `Containerfile.python` | CPU workloads, web services |
 | `Containerfile.cuda` | GPU workloads, model training on NVIDIA hardware (multiple CUDA versions: 12.8, 12.9, 13.0, 13.1, 13.2) |
-| `Containerfile.rocm` | GPU workloads, model training on AMD hardware (ROCm 6.4, x86_64 only) |
+| `Containerfile.rocm` | GPU workloads, model training on AMD hardware (ROCm 6.4, 7.1, x86_64 only) |
 
 ### Benefits
 
@@ -65,7 +65,7 @@ Provide **common base images** that ODH repositories can build upon:
 |---------|-------------|
 | **Reduced duplication** | CUDA setup done once, not in every repo |
 | **Faster builds** | Downstream images skip base setup |
-| **Consistent versions** | Single source of truth for Python, CUDA, cuDNN |
+| **Consistent versions** | Single source of truth for Python, CUDA, cuDNN, ROCm |
 | **Easier upgrades** | Update base image, rebuild consumers |
 | **Security** | Centralized vulnerability management |
 | **OpenShift compatibility** | Tested patterns for restricted SCC |
