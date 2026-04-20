@@ -97,6 +97,7 @@ RUN { echo "[cuda-rhel9-${NVARCH}]"; \
       echo "baseurl=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${NVARCH}"; \
       echo "enabled=1"; \
       echo "gpgcheck=1"; \
+      echo "repo_gpgcheck=1"; \
       echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA"; \
     } > /etc/yum.repos.d/cuda.repo
 
