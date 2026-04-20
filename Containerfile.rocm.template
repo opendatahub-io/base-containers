@@ -97,7 +97,6 @@ RUN if ! [ "${ROCM_MAJOR}" -eq "${ROCM_MAJOR}" ] 2>/dev/null; then \
 # ROCm Base Packages
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-rocm-dnf \
-    dnf upgrade -y --setopt=keepcache=1 && \
     dnf install -y --setopt=keepcache=1 \
         rocm-core \
         hip-runtime-amd

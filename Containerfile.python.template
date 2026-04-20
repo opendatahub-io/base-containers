@@ -58,10 +58,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 USER 0
 
-RUN dnf update -y --setopt=tsflags=nodocs && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf /var/cache/yum
-
 # -----------------------------------------------------------------------------
 # Package Index Configuration
 # -----------------------------------------------------------------------------

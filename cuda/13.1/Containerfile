@@ -104,7 +104,6 @@ RUN { echo "[cuda-rhel9-${NVARCH}]"; \
 # CUDA Base Packages
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
-    dnf upgrade -y --setopt=keepcache=1 && \
     dnf install -y --setopt=keepcache=1 \
         cuda-cudart-${CUDA_MAJOR_MINOR}-${NV_CUDA_CUDART_VERSION} \
         cuda-compat-${CUDA_MAJOR_MINOR}
