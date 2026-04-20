@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Generate GitHub App token
         id: app-token
-        uses: getsentry/action-github-app-token@v2
+        uses: getsentry/action-github-app-token@v3
         with:
           app_id: ${{ secrets.ODH_DEVOPS_APP_ID }}
           private_key: ${{ secrets.ODH_DEVOPS_APP_PRIVATE_KEY }}
