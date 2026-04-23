@@ -19,7 +19,10 @@ ARG NV_LIBNPP_VERSION
 ARG NV_LIBCUBLAS_VERSION
 ARG NV_LIBNCCL_VERSION
 ARG NV_LIBNCCL_PACKAGE_VERSION
+ARG NV_CUDA_CUPTI_VERSION
 ARG NV_CUDNN_VERSION
+ARG NV_LIBCUSPARSELT_VERSION
+ARG NV_LIBCUDSS_VERSION
 ARG NVIDIA_REQUIRE_CUDA
 
 # Build metadata for OCI labels
@@ -54,7 +57,10 @@ ARG NV_LIBNPP_VERSION
 ARG NV_LIBCUBLAS_VERSION
 ARG NV_LIBNCCL_VERSION
 ARG NV_LIBNCCL_PACKAGE_VERSION
+ARG NV_CUDA_CUPTI_VERSION
 ARG NV_CUDNN_VERSION
+ARG NV_LIBCUSPARSELT_VERSION
+ARG NV_LIBCUDSS_VERSION
 
 USER 0
 WORKDIR /opt/app-root/bin
@@ -104,6 +110,10 @@ RUN { echo "[cuda-rhel9-${NVARCH}]"; \
 # -----------------------------------------------------------------------------
 # CUDA Base Packages
 # -----------------------------------------------------------------------------
+# cuda-compat is intentionally unpinned: provides forward-compatible userspace
+# CUDA libraries so containers work with newer host GPU drivers. NVIDIA leaves
+# this unpinned by design in their own images.
+# https://docs.nvidia.com/deploy/cuda-compatibility/
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 \
         cuda-cudart-${CUDA_MAJOR_MINOR}-${NV_CUDA_CUDART_VERSION} \
@@ -158,9 +168,9 @@ RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containe
 # -----------------------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-cuda-dnf \
     dnf install -y --setopt=keepcache=1 \
-        cuda-cupti-${CUDA_MAJOR_MINOR} \
-        libcusparselt0 \
-        libcudss0-cuda-${CUDA_MAJOR}
+        cuda-cupti-${CUDA_MAJOR_MINOR}-${NV_CUDA_CUPTI_VERSION} \
+        libcusparselt0-${NV_LIBCUSPARSELT_VERSION} \
+        libcudss0-cuda-${CUDA_MAJOR}-${NV_LIBCUDSS_VERSION}
 
 ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 

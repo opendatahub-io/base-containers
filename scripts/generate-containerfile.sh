@@ -248,6 +248,9 @@ create_cuda_appconf() {
         NV_LIBNCCL_VERSION
         NV_LIBNCCL_PACKAGE_VERSION
         NV_CUDNN_VERSION
+        NV_CUDA_CUPTI_VERSION
+        NV_LIBCUSPARSELT_VERSION
+        NV_LIBCUDSS_VERSION
     )
     for key in "${nvidia_keys[@]}"; do
         # Add TODO comment before each NVIDIA-specific key (if not already present)
