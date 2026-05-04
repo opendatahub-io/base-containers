@@ -1,0 +1,97 @@
+name: Bug Report
+description: Report a bug with a base container image
+labels: ["kind/bug"]
+body:
+  - type: input
+    id: image-type
+    attributes:
+      label: Image Type / Variant
+      description: Which image family is affected?
+      placeholder: "e.g., CUDA 13.0, Python 3.12, ROCm 6.4"
+    validations:
+      required: true
+
+  - type: input
+    id: image-tag
+    attributes:
+      label: Full Image Tag
+      description: The exact image reference you are using.
+      placeholder: "quay.io/opendatahub/odh-midstream-<type>-base-<version>:<tag>"
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      value: |
+        1. Pull the image:
+           ```bash
+           podman pull <image-tag>
+           ```
+        2. Run the container:
+           ```bash
+           podman run --rm -it <image-tag> bash
+           ```
+        3. Execute the failing command:
+           ```bash
+           # <command that triggers the bug>
+           ```
+        4. Observe the error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Details about your environment (helpful for edge cases).
+      value: |
+        - **OS:** (e.g., RHEL 9.4, Fedora 40, Ubuntu 24.04)
+        - **Architecture:** (x86_64 / aarch64)
+        - **Container runtime + version:** (e.g., podman 5.0.1, docker 27.0)
+        - **OpenShift version (if applicable):** (e.g., 4.16)
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: Error Logs
+      description: Paste any relevant container logs, build output, or error traces.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here (screenshots, related issues, workarounds tried).
+    validations:
+      required: false
