@@ -45,6 +45,14 @@ spec:
   pipelineRef:
     name: odh-base-containers-pull-request
   taskRunSpecs:
+    - pipelineTaskName: clamav-scan
+      stepSpecs:
+        - name: extract-and-scan-image
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 12Gi
     - pipelineTaskName: ecosystem-cert-preflight-checks
       stepSpecs:
         - name: app-check
