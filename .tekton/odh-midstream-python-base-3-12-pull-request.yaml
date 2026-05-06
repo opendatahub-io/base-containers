@@ -1,3 +1,4 @@
+# Test: trigger pipeline to validate generate-image-tag task (remove before merge)
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
