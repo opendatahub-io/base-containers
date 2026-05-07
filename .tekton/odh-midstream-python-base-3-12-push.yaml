@@ -41,6 +41,39 @@ spec:
     value: python/3.12/app.conf
   pipelineRef:
     name: odh-base-containers-push
+  taskRunSpecs:
+    - pipelineTaskName: clamav-scan
+      stepSpecs:
+        - name: extract-and-scan-image
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 12Gi
+    - pipelineTaskName: clair-scan
+      stepSpecs:
+        - name: get-vulnerabilities
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 8Gi
+    - pipelineTaskName: build-images
+      stepSpecs:
+        - name: sbom-syft-generate
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 8Gi
+    - pipelineTaskName: ecosystem-cert-preflight-checks
+      stepSpecs:
+        - name: app-check
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 8Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-midstream-python-base-3-12
   workspaces:

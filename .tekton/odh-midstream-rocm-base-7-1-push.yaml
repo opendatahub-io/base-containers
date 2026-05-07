@@ -42,6 +42,14 @@ spec:
   pipelineRef:
     name: odh-base-containers-push
   taskRunSpecs:
+    - pipelineTaskName: clamav-scan
+      stepSpecs:
+        - name: extract-and-scan-image
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 12Gi
     - pipelineTaskName: clair-scan
       stepSpecs:
         - name: get-vulnerabilities
@@ -50,7 +58,9 @@ spec:
               memory: 4Gi
             limits:
               memory: 8Gi
-        - name: oci-attach-report
+    - pipelineTaskName: build-images
+      stepSpecs:
+        - name: sbom-syft-generate
           computeResources:
             requests:
               memory: 4Gi
