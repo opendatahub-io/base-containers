@@ -1,0 +1,10 @@
+# CODEOWNERS for opendatahub-io/base-containers
+#
+# Automatic PR reviewer assignment.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners — active contributors from @opendatahub-io/base-containers
+* @LalatenduMohanty @smoparth @Victoremepunto @shifa-khan
+
+# Konflux / Tekton pipelines — CI/CD specialist + primary maintainer
+.tekton/ @Victoremepunto @LalatenduMohanty
