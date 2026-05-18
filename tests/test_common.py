@@ -185,9 +185,17 @@ def test_pip_no_cache_dir(container):
     assert container.get_env("PIP_NO_CACHE_DIR") == "1"
 
 
-def test_uv_system_python(container):
-    """Verify UV_SYSTEM_PYTHON=1 for system Python usage."""
-    assert container.get_env("UV_SYSTEM_PYTHON") == "1"
+def test_uv_system_python_not_set(container):
+    """Verify UV_SYSTEM_PYTHON is not set.
+
+    sclorg base images provide Python 3.12 via a virtualenv at /opt/app-root.
+    Setting UV_SYSTEM_PYTHON=1 would cause uv to bypass the virtualenv and
+    target the system Python 3.9 instead.
+    """
+    assert not container.get_env("UV_SYSTEM_PYTHON"), (
+        "UV_SYSTEM_PYTHON should not be set — it causes uv to bypass the "
+        "Python 3.12 virtualenv and target the system Python 3.9"
+    )
 
 
 # --- OCI Label Tests ---
