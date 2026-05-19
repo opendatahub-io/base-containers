@@ -198,6 +198,14 @@ def test_uv_system_python_not_set(container):
     )
 
 
+def test_uv_python_downloads(container):
+    """Verify UV_PYTHON_DOWNLOADS=never to prevent uv from downloading interpreters."""
+    assert container.get_env("UV_PYTHON_DOWNLOADS") == "never", (
+        "UV_PYTHON_DOWNLOADS should be 'never' — uv must use the image's "
+        "Python interpreter, not download its own"
+    )
+
+
 # --- OCI Label Tests ---
 
 
