@@ -61,7 +61,7 @@ spec:
             requests:
               memory: 4Gi
             limits:
-              memory: 8Gi
+              memory: 12Gi
     - pipelineTaskName: build-images
       stepSpecs:
         - name: sbom-syft-generate
