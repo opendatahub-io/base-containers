@@ -4,6 +4,8 @@ These tests verify core functionality that should work identically
 across all ODH base container images.
 """
 
+import os
+
 import pytest
 
 from tests import APP_ROOT, WORKDIR, redact_url_credentials
@@ -66,6 +68,27 @@ def test_uv_pip_compile_smoke(container):
         "uv pip compile failed — broken index-url, missing CA certs, "
         f"or malformed /etc/uv/uv.toml\nstderr: {redact_url_credentials(result.stderr)}"
     )
+
+
+def test_image_architecture(container):
+    """Verify container architecture when EXPECTED_ARCH is set."""
+    expected = os.environ.get("EXPECTED_ARCH")
+    if not expected:
+        pytest.skip("EXPECTED_ARCH not set — skipping architecture validation")
+
+    result = container.run("uname -m")
+    assert result.returncode == 0
+    actual = result.stdout.strip()
+
+    # Normalize common architecture aliases
+    arch_aliases = {
+        "x86_64": {"x86_64", "amd64"},
+        "amd64": {"x86_64", "amd64"},
+        "aarch64": {"aarch64", "arm64"},
+        "arm64": {"aarch64", "arm64"},
+    }
+    allowed = arch_aliases.get(expected, {expected})
+    assert actual in allowed, f"Expected architecture {expected}, got: {actual}"
 
 
 # --- User & Permission Tests ---

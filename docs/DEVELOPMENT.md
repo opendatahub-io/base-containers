@@ -99,6 +99,14 @@ Use the build script to build container images:
 ./scripts/build.sh all
 ```
 
+The Python 3.12 and CUDA base images build natively on both x86_64 and aarch64 hosts.
+On an aarch64 machine, run `./scripts/build.sh python-3.12` or `./scripts/build.sh cuda-12.8`
+to build the arm64 variant locally. Published images (e.g.
+`quay.io/opendatahub/odh-midstream-python-base-3-12`,
+`quay.io/opendatahub/odh-midstream-cuda-base-12-8`) are multi-arch manifests with
+`linux/amd64` and `linux/arm64` platforms, built via Konflux. ROCm images remain
+x86_64-only.
+
 ## Running Tests
 
 Tests require the container images to be built first and their names passed via environment variables.
@@ -136,6 +144,7 @@ ROCM_IMAGE=<image:tag> pytest tests/test_rocm_image.py tests/test_common.py -v
 | `CUDA_IMAGE` | CUDA base image to test | `quay.io/opendatahub/odh-midstream-cuda-base-12-8` |
 | `ROCM_IMAGE` | ROCm base image to test (x86_64 only) | `quay.io/opendatahub/odh-midstream-rocm-base-6-4` |
 | `PYTHON_VERSION` | Expected Python version for validation | `3.12` |
+| `EXPECTED_ARCH` | Expected container architecture (`uname -m`) | `x86_64`, `aarch64` |
 | `CUDA_VERSION` | Expected CUDA version for validation | `12.8`, `12.9`, `13.0`, `13.1`, `13.2` |
 | `ROCM_VERSION` | Expected ROCm version for validation | `6.4`, `7.1` |
 
@@ -162,7 +171,9 @@ GitHub Actions automatically runs on every PR and push to `main`:
 | `type-check` | PR, push | Runs `mypy` type checking |
 | `lint-containerfiles` | PR, push | Lints changed Containerfiles with Hadolint |
 | `test-python-image` | PR, push | Builds Python image and runs tests when Python-related files change |
+| `test-python-image-arm64` | PR, push | Builds Python image on arm64 and runs tests when Python-related files change |
 | `test-cuda-image` | PR, push | Builds CUDA image and runs tests when CUDA-related files change |
+| `test-cuda-image-arm64` | PR, push | Builds CUDA image on arm64 and runs tests when CUDA-related files change |
 | `test-rocm-image` | PR, push | Builds ROCm image and runs tests when ROCm-related files change |
 | `ci-status` | PR, push | Aggregates required jobs for branch protection |
 

@@ -52,6 +52,8 @@ jobs:
             any-cuda:
               - 'cuda/**/Containerfile'
               - 'cuda/**/app.conf'
+              - '.tekton/odh-midstream-cuda-base-*.yaml'
+              - '.github/workflows/ci.yml'
               - 'scripts/fix-permissions'
               - 'scripts/build.sh'
               - 'requirements-build.txt'
@@ -74,6 +76,8 @@ jobs:
             any-python:
               - 'python/**/Containerfile'
               - 'python/**/app.conf'
+              - '.tekton/odh-midstream-python-base-3-12-*.yaml'
+              - '.github/workflows/ci.yml'
               - 'scripts/fix-permissions'
               - 'scripts/build.sh'
               - 'requirements-build.txt'
@@ -127,7 +131,7 @@ jobs:
             local type="$1"
             local files="$2"
             echo "$files" | grep -qE \
-              "requirements-build\.txt|scripts/fix-permissions|scripts/build\.sh|\.dockerignore|tests/"
+              "requirements-build\.txt|scripts/fix-permissions|scripts/build\.sh|\.dockerignore|tests/|^\.github/workflows/ci\.yml$|^\.tekton/"
           }
 
           # Build matrix for each image type
@@ -290,6 +294,64 @@ jobs:
         env:
           PYTHON_IMAGE: ${{ env.IMAGE_REGISTRY }}/odh-midstream-python-base:${{ steps.config.outputs.tag }}
           PYTHON_VERSION: ${{ matrix.version }}
+          EXPECTED_ARCH: x86_64
+        run: pytest tests/test_python_image.py tests/test_common.py -v
+
+  test-python-image-arm64:
+    name: Test Python ${{ matrix.version }} Image (arm64)
+    runs-on: ubuntu-24.04-arm
+    needs: [lint, type-check, changes, lint-containerfiles]
+    # Run when Python-related files change AND lint-containerfiles passed/skipped
+    if: |
+      always() &&
+      needs.changes.outputs['any-python'] == 'true' &&
+      needs.changes.outputs.python-versions != '' &&
+      needs.changes.outputs.python-versions != '[]' &&
+      needs.lint.result == 'success' &&
+      needs.type-check.result == 'success' &&
+      (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.changes.outputs.python-versions || '[]') }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install -e ".[test]"
+
+      - name: Get image tag from config
+        id: config
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          # Validate version format to prevent injection
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: ${VERSION}"
+            exit 1
+          fi
+          TAG=$(grep '^IMAGE_TAG=' "python/${VERSION}/app.conf" | cut -d'=' -f2)
+          if [ -z "$TAG" ]; then
+            echo "::error::IMAGE_TAG not found in python/${VERSION}/app.conf"
+            exit 1
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Python ${{ matrix.version }} image
+        env:
+          VERSION: ${{ matrix.version }}
+        run: ./scripts/build.sh "python-${VERSION}"
+
+      - name: Run Python image tests
+        env:
+          PYTHON_IMAGE: ${{ env.IMAGE_REGISTRY }}/odh-midstream-python-base:${{ steps.config.outputs.tag }}
+          PYTHON_VERSION: ${{ matrix.version }}
+          EXPECTED_ARCH: aarch64
         run: pytest tests/test_python_image.py tests/test_common.py -v
 
   test-cuda-image:
@@ -382,6 +444,100 @@ jobs:
         env:
           CUDA_IMAGE: ${{ env.IMAGE_REGISTRY }}/odh-midstream-cuda-base:${{ steps.config.outputs.tag }}
           CUDA_VERSION: ${{ matrix.version }}
+          EXPECTED_ARCH: x86_64
+        run: pytest tests/test_cuda_image.py tests/test_common.py -v
+
+  test-cuda-image-arm64:
+    name: Test CUDA ${{ matrix.version }} Image (arm64)
+    runs-on: ubuntu-24.04-arm
+    needs: [lint, type-check, changes, lint-containerfiles]
+    # Run when CUDA-related files change AND lint-containerfiles passed/skipped
+    if: |
+      always() &&
+      needs.changes.outputs['any-cuda'] == 'true' &&
+      needs.changes.outputs.cuda-versions != '' &&
+      needs.changes.outputs.cuda-versions != '[]' &&
+      needs.lint.result == 'success' &&
+      needs.type-check.result == 'success' &&
+      (needs.lint-containerfiles.result == 'success' || needs.lint-containerfiles.result == 'skipped')
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.changes.outputs.cuda-versions || '[]') }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+
+      # Free disk space for CUDA build (~14GB image)
+      # https://github.com/jlumbroso/free-disk-space
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false  # Keep for actions/setup-python
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      # Additional cleanup (complements jlumbroso action)
+      # Referenced from: https://github.com/opendatahub-io/notebooks/.github/actions/free-up-disk-space
+      - name: Additional disk cleanup
+        run: |
+          # Run cleanup in parallel for speed
+          sudo rm -rf /usr/local/.ghcup &
+          sudo rm -rf /usr/local/share/boost &
+          sudo rm -rf /usr/local/lib/node_modules &
+          sudo rm -rf /opt/hostedtoolcache/CodeQL &
+          sudo rm -rf /opt/hostedtoolcache/go &
+          sudo rm -rf /opt/hostedtoolcache/Ruby &
+          sudo rm -rf /opt/hostedtoolcache/PyPy &
+          wait
+
+          # Show available space
+          echo "=== Available disk space ==="
+          df -h /
+          AVAILABLE=$(df -BG / | tail -1 | awk '{print $4}' | tr -d 'G')
+          echo "Available: ${AVAILABLE}GB"
+          if [ "$AVAILABLE" -lt 30 ]; then
+            echo "::warning::Less than 30GB available for CUDA build"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install -e ".[test]"
+
+      - name: Get image tag from config
+        id: config
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          # Validate version format to prevent injection
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: ${VERSION}"
+            exit 1
+          fi
+          TAG=$(grep '^IMAGE_TAG=' "cuda/${VERSION}/app.conf" | cut -d'=' -f2)
+          if [ -z "$TAG" ]; then
+            echo "::error::IMAGE_TAG not found in cuda/${VERSION}/app.conf"
+            exit 1
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build CUDA ${{ matrix.version }} image
+        env:
+          VERSION: ${{ matrix.version }}
+        run: ./scripts/build.sh "cuda-${VERSION}"
+
+      - name: Run CUDA image tests
+        env:
+          CUDA_IMAGE: ${{ env.IMAGE_REGISTRY }}/odh-midstream-cuda-base:${{ steps.config.outputs.tag }}
+          CUDA_VERSION: ${{ matrix.version }}
+          EXPECTED_ARCH: aarch64
         run: pytest tests/test_cuda_image.py tests/test_common.py -v
 
   test-rocm-image:
@@ -488,7 +644,9 @@ jobs:
       - type-check
       - lint-containerfiles
       - test-python-image
+      - test-python-image-arm64
       - test-cuda-image
+      - test-cuda-image-arm64
       - test-rocm-image
     steps:
       - name: Check CI status
@@ -497,7 +655,9 @@ jobs:
           echo "type-check: ${{ needs.type-check.result }}"
           echo "lint-containerfiles: ${{ needs.lint-containerfiles.result }}"
           echo "test-python-image: ${{ needs.test-python-image.result }}"
+          echo "test-python-image-arm64: ${{ needs.test-python-image-arm64.result }}"
           echo "test-cuda-image: ${{ needs.test-cuda-image.result }}"
+          echo "test-cuda-image-arm64: ${{ needs.test-cuda-image-arm64.result }}"
           echo "test-rocm-image: ${{ needs.test-rocm-image.result }}"
 
           # Fail if any required job failed or was cancelled
@@ -510,8 +670,12 @@ jobs:
                 "${{ needs.lint-containerfiles.result }}" == "cancelled" || \
                 "${{ needs.test-python-image.result }}" == "failure" || \
                 "${{ needs.test-python-image.result }}" == "cancelled" || \
+                "${{ needs.test-python-image-arm64.result }}" == "failure" || \
+                "${{ needs.test-python-image-arm64.result }}" == "cancelled" || \
                 "${{ needs.test-cuda-image.result }}" == "failure" || \
                 "${{ needs.test-cuda-image.result }}" == "cancelled" || \
+                "${{ needs.test-cuda-image-arm64.result }}" == "failure" || \
+                "${{ needs.test-cuda-image-arm64.result }}" == "cancelled" || \
                 "${{ needs.test-rocm-image.result }}" == "failure" || \
                 "${{ needs.test-rocm-image.result }}" == "cancelled" ]]; then
             echo "::error::One or more CI jobs failed or were cancelled"
