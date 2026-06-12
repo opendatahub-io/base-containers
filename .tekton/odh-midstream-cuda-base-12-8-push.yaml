@@ -34,7 +34,7 @@ spec:
     value: quay.io/opendatahub/odh-midstream-cuda-base-12-8:{{revision}}
   - name: build-platforms
     value:
-    - linux/x86_64
+    - linux-d160-m2xlarge/amd64
     - linux-d160-m2xlarge/arm64
   - name: dockerfile
     value: cuda/12.8/Containerfile
@@ -50,7 +50,7 @@ spec:
             requests:
               memory: 4Gi
             limits:
-              memory: 12Gi
+              memory: 16Gi
     - pipelineTaskName: clair-scan
       stepSpecs:
         - name: get-vulnerabilities
@@ -58,7 +58,7 @@ spec:
             requests:
               memory: 4Gi
             limits:
-              memory: 12Gi
+              memory: 16Gi
     - pipelineTaskName: build-images
       stepSpecs:
         - name: sbom-syft-generate
@@ -66,7 +66,7 @@ spec:
             requests:
               memory: 4Gi
             limits:
-              memory: 8Gi
+              memory: 16Gi
     - pipelineTaskName: ecosystem-cert-preflight-checks
       stepSpecs:
         - name: app-check
