@@ -38,7 +38,7 @@ jobs:
       rocm-versions: ${{ steps.build-matrices.outputs.rocm-versions }}
       python-versions: ${{ steps.build-matrices.outputs.python-versions }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Fetch current + parent commit so paths-filter can diff on push events
           fetch-depth: 2
@@ -162,7 +162,7 @@ jobs:
     needs: [authorize]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -183,7 +183,7 @@ jobs:
     needs: [authorize]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -206,7 +206,7 @@ jobs:
       containerfiles: ${{ steps.containerfiles-matrix.outputs.containerfiles }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Get changed Containerfiles
         id: changed
@@ -232,7 +232,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Lint changed Containerfiles
         uses: hadolint/hadolint-action@v3.3.0
@@ -258,7 +258,7 @@ jobs:
         version: ${{ fromJSON(needs.changes.outputs.python-versions || '[]') }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -315,7 +315,7 @@ jobs:
         version: ${{ fromJSON(needs.changes.outputs.python-versions || '[]') }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -372,7 +372,7 @@ jobs:
         version: ${{ fromJSON(needs.changes.outputs.cuda-versions || '[]') }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Free disk space for CUDA build (~14GB image)
       # https://github.com/jlumbroso/free-disk-space
@@ -465,7 +465,7 @@ jobs:
         version: ${{ fromJSON(needs.changes.outputs.cuda-versions || '[]') }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Free disk space for CUDA build (~14GB image)
       # https://github.com/jlumbroso/free-disk-space
@@ -558,7 +558,7 @@ jobs:
         version: ${{ fromJSON(needs.changes.outputs.rocm-versions || '[]') }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Free disk space for ROCm build (large image)
       # https://github.com/jlumbroso/free-disk-space
