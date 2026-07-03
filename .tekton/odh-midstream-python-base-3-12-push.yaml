@@ -40,6 +40,10 @@ spec:
     value: python/3.12/Containerfile
   - name: build-args-file
     value: python/3.12/app.conf
+  - name: hermetic
+    value: "true"
+  - name: prefetch-input
+    value: '{"type": "pip", "path": ".", "requirements_files": ["requirements-build.txt"], "allow_binary": true}'
   pipelineRef:
     name: odh-base-containers-push
   taskRunSpecs:
