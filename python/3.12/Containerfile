@@ -67,6 +67,7 @@ USER 0
 
 ARG PIP_INDEX_URL
 ARG PIP_EXTRA_INDEX_URL
+ARG UV_TORCH_BACKEND=
 
 # pip configuration (system-wide) - must be created before installing uv
 RUN mkdir -p /etc/pip && \
@@ -84,10 +85,14 @@ RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements-b
     rm /tmp/requirements-build.txt
 
 # uv configuration (system-wide)
+# Note: PIP_EXTRA_INDEX_URL is intentionally omitted from uv.toml because
+# UV_TORCH_BACKEND is uv's native mechanism for PyTorch CPU wheel resolution.
+# torch-backend is written to uv.toml (not ENV) to avoid uv erroring on empty values.
+# Downstream builds can disable by omitting UV_TORCH_BACKEND or rebuilding uv.toml.
 RUN mkdir -p /etc/uv && \
     { echo "[pip]"; \
       echo "index-url = \"${PIP_INDEX_URL}\""; \
-      [ -n "${PIP_EXTRA_INDEX_URL}" ] && echo "extra-index-url = [\"${PIP_EXTRA_INDEX_URL}\"]"; \
+      [ -n "${UV_TORCH_BACKEND}" ] && echo "torch-backend = \"${UV_TORCH_BACKEND}\""; \
       true; \
     } > /etc/uv/uv.toml
 ENV UV_CONFIG_FILE=/etc/uv/uv.toml
@@ -152,6 +157,7 @@ WORKDIR /opt/app-root/src
 #   podman build -t myapp:rhoai \
 #     --build-arg PIP_INDEX_URL=https://aipcc.internal/simple \
 #     --build-arg PIP_EXTRA_INDEX_URL="" \
+#     --build-arg UV_TORCH_BACKEND= \
 #     .
 #
 # -----------------------------------------------------------------------------
