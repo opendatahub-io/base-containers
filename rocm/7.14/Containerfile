@@ -1,0 +1,261 @@
+# ODH ROCm Base Image - TheRock (CentOS Stream 9)
+# ROCm Version: ${ROCM_MAJOR_MINOR_DOT}
+# Generated from Containerfile.rocm-therock.template - edit template, not this file
+#
+# For ROCm 7.14+ which uses TheRock multi-arch packages (amdrocm-*).
+# Legacy ROCm versions (6.4, 7.1) use Containerfile.rocm.template instead.
+#
+# CentOS Stream 9 required: ROCm packages need CentOS Stream 9 / RHEL 9 repos
+# Usage: ./scripts/build.sh rocm-${ROCM_MAJOR_MINOR_DOT}
+# Build args: rocm/${ROCM_MAJOR_MINOR_DOT}/app.conf
+
+ARG BASE_IMAGE
+ARG ROCM_MAJOR
+ARG ROCM_MAJOR_MINOR
+ARG ROCM_MAJOR_MINOR_DOT
+ARG ROCM_VERSION
+ARG RELEASEVER
+
+# TheRock repository URL for amdrocm-* packages
+ARG THEROCK_REPO_URL
+
+# Frameworks repository URL for migraphx packages
+ARG FRAMEWORKS_REPO_URL
+
+# ROCm install prefix (7.14+ uses /opt/rocm/core)
+ARG ROCM_HOME=/opt/rocm/core
+
+# Build metadata for OCI labels
+ARG BUILD_DATE
+ARG VCS_REF=unknown
+ARG VERSION=0.0.1
+
+# -----------------------------------------------------------------------------
+# Base stage (x86_64 only - ROCm does not support ARM64)
+# -----------------------------------------------------------------------------
+FROM ${BASE_IMAGE} AS rocm-base
+
+ARG ROCM_MAJOR
+ARG ROCM_MAJOR_MINOR
+ARG ROCM_MAJOR_MINOR_DOT
+ARG ROCM_VERSION
+ARG RELEASEVER
+ARG THEROCK_REPO_URL
+ARG FRAMEWORKS_REPO_URL
+ARG ROCM_HOME
+
+USER 0
+WORKDIR /opt/app-root/bin
+
+# -----------------------------------------------------------------------------
+# ROCm Version Environment
+# -----------------------------------------------------------------------------
+ENV ROCM_VERSION=${ROCM_VERSION}
+ENV ROCM_HOME=${ROCM_HOME}
+
+# -----------------------------------------------------------------------------
+# TheRock Repository Setup
+# -----------------------------------------------------------------------------
+RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-rocm-dnf \
+    dnf install -y --setopt=keepcache=1 --allowerasing curl ca-certificates
+
+# ROCm GPG keys (GA + TheRock, matching downstream configuration)
+RUN curl -fsSL "https://repo.radeon.com/rocm/rocm.gpg.key" > /etc/pki/rpm-gpg/RPM-GPG-KEY-AMD-ROCM && \
+    curl -fsSL "https://rocm.prereleases.amd.com/packages/gpg/rocm.gpg" > /etc/pki/rpm-gpg/RPM-GPG-KEY-AMD-ROCM-THEROCK
+
+RUN { echo "[therock]"; \
+      echo "name=TheRock ROCm ${ROCM_VERSION}"; \
+      echo "baseurl=${THEROCK_REPO_URL}"; \
+      echo "enabled=1"; \
+      echo "priority=150"; \
+      echo "gpgcheck=1"; \
+      echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-AMD-ROCM"; \
+      echo "       file:///etc/pki/rpm-gpg/RPM-GPG-KEY-AMD-ROCM-THEROCK"; \
+    } > /etc/yum.repos.d/rocm.repo
+
+# Frameworks repository for migraphx (separate from main TheRock packages)
+RUN { echo "[rocm-frameworks]"; \
+      echo "name=ROCm Frameworks (migraphx)"; \
+      echo "baseurl=${FRAMEWORKS_REPO_URL}"; \
+      echo "enabled=1"; \
+      echo "priority=200"; \
+      echo "gpgcheck=0"; \
+    } > /etc/yum.repos.d/rocm-frameworks.repo
+
+# -----------------------------------------------------------------------------
+# ROCm Packages (TheRock amdrocm-* multi-arch)
+# -----------------------------------------------------------------------------
+RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-rocm-dnf \
+    dnf install -y --setopt=keepcache=1 \
+      gcc-toolset-14 \
+      gcc-toolset-14-gcc-c++ \
+      gcc-toolset-14-gcc-gfortran \
+      gcc-toolset-14-libatomic-devel \
+      libdrm \
+      amdrocm-amdsmi \
+      amdrocm-llvm \
+      amdrocm-runtime \
+      amdrocm-runtime-devel \
+      amdrocm-rccl \
+      amdrocm-rccl-devel \
+      amdrocm-math-common \
+      amdrocm-core-sdk \
+      amdrocm-core-devel \
+      amdrocm-blas \
+      amdrocm-blas-devel \
+      amdrocm-dnn \
+      amdrocm-dnn-devel \
+      amdrocm-fft \
+      amdrocm-fft-devel \
+      amdrocm-solver \
+      amdrocm-solver-devel \
+      amdrocm-sparse \
+      amdrocm-sparse-devel \
+      amdrocm-rand \
+      amdrocm-rand-devel \
+      amdrocm-ccl-devel \
+      amdrocm-migraphx \
+      amdrocm-migraphx-devel
+
+# Configure ROCm library paths
+ENV PATH=${ROCM_HOME}/bin:${ROCM_HOME}/hip/bin:${PATH}
+ENV LD_LIBRARY_PATH=${ROCM_HOME}/lib:${ROCM_HOME}/lib64
+
+# -----------------------------------------------------------------------------
+# Post-install: symlinks for backward compatibility (/opt/rocm -> /opt/rocm/core)
+# -----------------------------------------------------------------------------
+RUN ln -sfn "${ROCM_HOME}"/include /opt/rocm/include && \
+    ln -sfn "${ROCM_HOME}"/lib /opt/rocm/lib && \
+    ln -sfn "${ROCM_HOME}"/bin /opt/rocm/bin && \
+    ln -sfn "${ROCM_HOME}"/share /opt/rocm/share && \
+    for subdir in llvm hip; do \
+      if [ -d "${ROCM_HOME}/${subdir}" ]; then \
+        ln -sfn "${ROCM_HOME}/${subdir}" "/opt/rocm/${subdir}"; \
+      fi; \
+    done
+
+# Fix shebangs in ROCm CLI tools to use system Python
+RUN for script in "${ROCM_HOME}/bin/amd-smi" "${ROCM_HOME}/bin/rocm-smi"; do \
+      if [ -f "${script}" ]; then \
+        sed -i -e '1s,#!/usr/bin/env python3,#!/usr/bin/python3,' "${script}"; \
+      fi; \
+    done
+
+# Register amdsmi package on the Python import path
+RUN if [ -d "${ROCM_HOME}/share/amd_smi" ]; then \
+      echo "${ROCM_HOME}/share/amd_smi" \
+        > "$(python -c "import sysconfig; print(sysconfig.get_path('platlib'))")"/rocm-amdsmi.pth; \
+    fi
+
+# -----------------------------------------------------------------------------
+# ROCm Shared Library Configuration
+# -----------------------------------------------------------------------------
+RUN echo "${ROCM_HOME}/lib" > /etc/ld.so.conf.d/rocm.conf && \
+    echo "${ROCM_HOME}/lib64" >> /etc/ld.so.conf.d/rocm.conf && \
+    printf '%s\n' \
+      "/opt/rh/gcc-toolset-14/root/usr/lib64" \
+      "/opt/rh/gcc-toolset-14/root/usr/lib" \
+      > /etc/ld.so.conf.d/gcc-toolset-14.conf && \
+    ldconfig
+
+# gcc-toolset-14 compiler environment
+ENV PATH=/opt/rh/gcc-toolset-14/root/usr/bin:${PATH} \
+    PKG_CONFIG_PATH=/opt/rh/gcc-toolset-14/root/usr/lib64/pkgconfig
+
+# -----------------------------------------------------------------------------
+# Development Tools
+# -----------------------------------------------------------------------------
+RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked,id=odh-base-containers-rocm-dnf \
+    dnf install -y --setopt=keepcache=1 make findutils
+
+# -----------------------------------------------------------------------------
+# Environment (consistent with Python base image)
+# -----------------------------------------------------------------------------
+
+# Python settings - prevent bytecode files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_NO_CACHE=1 \
+    UV_PYTHON_DOWNLOADS=never
+
+# -----------------------------------------------------------------------------
+# Package Index Configuration
+# -----------------------------------------------------------------------------
+ARG PIP_INDEX_URL=https://pypi.org/simple
+ARG PIP_EXTRA_INDEX_URL
+ARG UV_TORCH_BACKEND=
+
+# pip configuration (system-wide)
+RUN mkdir -p /etc/pip && \
+    { echo "[global]"; \
+      echo "index-url = ${PIP_INDEX_URL}"; \
+      [ -n "${PIP_EXTRA_INDEX_URL}" ] && echo "extra-index-url = ${PIP_EXTRA_INDEX_URL}"; \
+      true; \
+    } > /etc/pip.conf
+
+# Install uv - fast Python package installer
+# https://github.com/astral-sh/uv
+# Version pinned in requirements-build.txt
+COPY --chmod=644 --chown=0:0 requirements-build.txt /tmp/requirements-build.txt
+RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements-build.txt && \
+    rm /tmp/requirements-build.txt
+
+# uv configuration (system-wide)
+RUN mkdir -p /etc/uv && \
+    { echo "[pip]"; \
+      echo "index-url = \"${PIP_INDEX_URL}\""; \
+      [ -n "${UV_TORCH_BACKEND}" ] && echo "torch-backend = \"${UV_TORCH_BACKEND}\""; \
+      true; \
+    } > /etc/uv/uv.toml
+ENV UV_CONFIG_FILE=/etc/uv/uv.toml
+
+# Copy fix-permissions script from sclorg for OpenShift compatibility
+COPY --chmod=755 --chown=0:0 scripts/fix-permissions /usr/local/bin/fix-permissions
+
+# -----------------------------------------------------------------------------
+# Directory Setup
+# -----------------------------------------------------------------------------
+RUN mkdir -p /opt/app-root/src/.cache && \
+    chown -R 1001:0 /opt/app-root && \
+    fix-permissions /opt/app-root -P
+
+# -----------------------------------------------------------------------------
+# Final Cleanup
+# -----------------------------------------------------------------------------
+RUN dnf clean all && \
+    rm -rf /var/cache/dnf /var/log/dnf* /var/log/hawkey*
+
+# -----------------------------------------------------------------------------
+# Labels
+# -----------------------------------------------------------------------------
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+ARG PYTHON_VERSION
+
+LABEL name="odh-midstream-rocm-base" \
+      version="${VERSION}" \
+      summary="ODH ROCm Base Image (TheRock)" \
+      description="CentOS Stream 9 with ROCm (TheRock) and Python for Open Data Hub workloads" \
+      io.k8s.display-name="ODH ROCm Base" \
+      io.k8s.description="CentOS Stream 9 with ROCm (TheRock) and Python for Open Data Hub workloads" \
+      io.openshift.tags="rocm,python,ai,ml,gpu,c9s,therock" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.title="ODH ROCm Base Image (TheRock)" \
+      org.opencontainers.image.description="CentOS Stream 9 with ROCm (TheRock) and Python for Open Data Hub workloads" \
+      org.opencontainers.image.source="https://github.com/opendatahub-io/base-containers" \
+      org.opencontainers.image.vendor="Open Data Hub" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      com.amd.rocm.version="${ROCM_VERSION}" \
+      com.opendatahub.accelerator="rocm" \
+      com.opendatahub.python="${PYTHON_VERSION}"
+
+# -----------------------------------------------------------------------------
+# User Configuration
+# -----------------------------------------------------------------------------
+USER 1001
+WORKDIR /opt/app-root/src

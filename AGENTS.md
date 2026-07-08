@@ -8,7 +8,7 @@ This repository provides standardized Containerfiles for building Open Data Hub 
 |--------|------------------|------------------------|
 | Python | UBI 9            | 3.12                   |
 | CUDA   | CentOS Stream 9  | 12.8, 12.9, 13.0, 13.1, 13.2 |
-| ROCm   | CentOS Stream 9  | 6.4, 7.1               |
+| ROCm   | CentOS Stream 9  | 6.4, 7.1, 7.14         |
 
 ## Repository Structure
 
@@ -34,9 +34,12 @@ base-containers/
 │   ├── 6.4/
 │   │   ├── Containerfile                 # ROCm 6.4 Containerfile
 │   │   └── app.conf                      # ROCm 6.4 build arguments
-│   └── 7.1/
-│       ├── Containerfile                 # ROCm 7.1 Containerfile
-│       └── app.conf                      # ROCm 7.1 build arguments
+│   ├── 7.1/
+│   │   ├── Containerfile                 # ROCm 7.1 Containerfile
+│   │   └── app.conf                      # ROCm 7.1 build arguments
+│   └── 7.14/
+│       ├── Containerfile                 # ROCm 7.14 Containerfile
+│       └── app.conf                      # ROCm 7.14 build arguments
 ├── python/                               # Python version directories
 │   └── 3.12/
 │       ├── Containerfile                 # Python 3.12 Containerfile
@@ -85,6 +88,7 @@ base-containers/
 ./scripts/build.sh cuda-13.2              # Build CUDA 13.2 image
 ./scripts/build.sh rocm-6.4               # Build ROCm 6.4 image
 ./scripts/build.sh rocm-7.1               # Build ROCm 7.1 image
+./scripts/build.sh rocm-7.14              # Build ROCm 7.14 image
 ./scripts/build.sh python-3.12            # Build Python 3.12 image
 
 # Build all versions of a type
@@ -163,6 +167,7 @@ Config files in `<type>/<version>/app.conf` are passed directly to podman via `-
   `CUDA_MAJOR` (12), `CUDA_MAJOR_MINOR` (12-8), `CUDA_MAJOR_MINOR_DOT` (12.8)
 - ROCm templates use build args from `rocm/<version>/app.conf`:
   `ROCM_MAJOR` (6), `ROCM_MAJOR_MINOR` (6-4), `ROCM_MAJOR_MINOR_DOT` (6.4)
+  ROCm 7.14+ also uses: `THEROCK_REPO_URL`, `ROCM_HOME`
 - Python templates use build args from `python/<version>/app.conf`:
   `PYTHON_VERSION` (3.12), `PYTHON_VERSION_NODOT` (312)
 
