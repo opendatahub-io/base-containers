@@ -36,13 +36,19 @@ def test_rocm_home(rocm_container):
     """Verify ROCM_HOME points to the ROCm installation directory.
 
     PyTorch and other ML frameworks use ROCM_HOME to locate the ROCm toolkit.
+    ROCm <= 7.2 uses /opt/rocm; ROCm 7.14+ (TheRock) uses /opt/rocm/core.
     """
-    assert rocm_container.get_env("ROCM_HOME") == "/opt/rocm"
+    rocm_home = rocm_container.get_env("ROCM_HOME")
+    assert rocm_home in ("/opt/rocm", "/opt/rocm/core"), (
+        f"Expected ROCM_HOME to be /opt/rocm or /opt/rocm/core, got {rocm_home}"
+    )
 
 
 def test_rocm_in_path(rocm_container):
     """Verify ROCm bin directory is in PATH."""
-    assert "/opt/rocm/bin" in rocm_container.get_env("PATH")
+    path = rocm_container.get_env("PATH")
+    rocm_home = rocm_container.get_env("ROCM_HOME") or "/opt/rocm"
+    assert f"{rocm_home}/bin" in path, f"Expected {rocm_home}/bin in PATH, got {path}"
 
 
 # --- ROCm Directory Tests ---
@@ -131,19 +137,20 @@ def test_uv_torch_backend(rocm_container):
     Uses a specific backend (e.g. rocm6.4) rather than "auto" because
     auto detects GPU drivers at runtime, which are absent during container builds.
     Configured via uv.toml (not ENV) to avoid uv erroring on empty values.
+
+    ROCm 7.14+: uv does not yet support rocm7.14 as a torch-backend value,
+    so torch-backend may be absent. Test is skipped in that case.
     """
     result = rocm_container.run("cat /etc/uv/uv.toml")
     assert result.returncode == 0, "Failed to read /etc/uv/uv.toml"
-    assert "torch-backend" in result.stdout, (
-        "torch-backend should be configured in /etc/uv/uv.toml for ROCm images"
-    )
-    # Verify it's set to a valid ROCm backend (rocmX.Y format), not "auto" or "cpu"
+
+    if "torch-backend" not in result.stdout:
+        pytest.skip(
+            "torch-backend not configured (expected for ROCm versions not yet supported by uv)"
+        )
+
     match = re.search(r'torch-backend\s*=\s*"(rocm\d+\.\d+)"', result.stdout)
     assert match, f'Expected torch-backend = "rocmX.Y" in uv.toml, got:\n{result.stdout}'
-    # If UV_TORCH_BACKEND is set in the test environment, verify the exact value matches.
-    # Note: UV_TORCH_BACKEND is intentionally not passed in CI. The downstream build
-    # overwrites /etc/uv/uv.toml with its own config, so the exact value set here
-    # has no downstream impact. The loose format check above is sufficient.
     expected_backend = os.environ.get("UV_TORCH_BACKEND")
     if expected_backend is not None:
         assert match.group(1) == expected_backend, (

@@ -15,7 +15,7 @@ For development setup and workflow, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.m
 |--------|------------------------|------------------|
 | Python | 3.12                   | UBI 9            |
 | CUDA   | 12.8, 12.9, 13.0, 13.1, 13.2 | CentOS Stream 9  |
-| ROCm   | 6.4, 7.1               | CentOS Stream 9  |
+| ROCm   | 6.4, 7.1, 7.14         | CentOS Stream 9  |
 
 ## Pulling Base Images
 
@@ -56,6 +56,7 @@ podman pull quay.io/opendatahub/odh-midstream-cuda-base-13-2
 |---------|-------|-------------------|
 | 6.4 | `quay.io/opendatahub/odh-midstream-rocm-base-6-4` | [View on Quay.io](https://quay.io/repository/opendatahub/odh-midstream-rocm-base-6-4) |
 | 7.1 | `quay.io/opendatahub/odh-midstream-rocm-base-7-1` | [View on Quay.io](https://quay.io/repository/opendatahub/odh-midstream-rocm-base-7-1) |
+| 7.14 | `quay.io/opendatahub/odh-midstream-rocm-base-7-14` | [View on Quay.io](https://quay.io/repository/opendatahub/odh-midstream-rocm-base-7-14) |
 
 ```bash
 # Pull ROCm 6.4 base image (x86_64 only)
@@ -63,6 +64,9 @@ podman pull quay.io/opendatahub/odh-midstream-rocm-base-6-4
 
 # Pull ROCm 7.1 base image (x86_64 only)
 podman pull quay.io/opendatahub/odh-midstream-rocm-base-7-1
+
+# Pull ROCm 7.14 base image (x86_64 only)
+podman pull quay.io/opendatahub/odh-midstream-rocm-base-7-14
 ```
 
 ## Repository Structure

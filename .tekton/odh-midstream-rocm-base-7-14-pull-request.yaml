@@ -1,0 +1,87 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/base-containers?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request" && target_branch == "main" && (
+        'rocm/7.14/**'.pathChanged() ||
+        'requirements-build.txt'.pathChanged() ||
+        'scripts/fix-permissions'.pathChanged() ||
+        '.dockerignore'.pathChanged() ||
+        '.tekton/odh-midstream-rocm-base-7-14-pull-request.yaml'.pathChanged()
+      )
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: odh-base-containers
+    appstudio.openshift.io/component: odh-midstream-rocm-base-7-14
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-midstream-rocm-base-7-14-on-pull-request
+  namespace: open-data-hub-tenant
+spec:
+  timeouts:
+    pipeline: "4h0m0s"
+    tasks: "4h0m0s"
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/opendatahub/odh-midstream-rocm-base-7-14:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
+  - name: build-platforms
+    value:
+    - linux-d160-m2xlarge/amd64
+  - name: dockerfile
+    value: rocm/7.14/Containerfile
+  - name: build-args-file
+    value: rocm/7.14/app.conf
+  pipelineRef:
+    name: odh-base-containers-pull-request
+  taskRunSpecs:
+    - pipelineTaskName: clamav-scan
+      stepSpecs:
+        - name: extract-and-scan-image
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 24Gi
+    - pipelineTaskName: clair-scan
+      stepSpecs:
+        - name: get-vulnerabilities
+          computeResources:
+            requests:
+              memory: 4Gi
+            limits:
+              memory: 24Gi
+    - pipelineTaskName: build-images
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 24Gi
+    - pipelineTaskName: ecosystem-cert-preflight-checks
+      stepSpecs:
+        - name: app-check
+          computeResources:
+            requests:
+              memory: 16Gi
+              cpu: '8'
+            limits:
+              memory: 20Gi
+              cpu: '8'
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-midstream-rocm-base-7-14
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}
