@@ -235,7 +235,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Lint changed Containerfiles
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: ${{ matrix.containerfile }}
           config: .hadolint.yaml
