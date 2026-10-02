@@ -299,7 +299,7 @@ jobs:
 
   test-python-image-arm64:
     name: Test Python ${{ matrix.version }} Image (arm64)
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     needs: [lint, type-check, changes, lint-containerfiles]
     # Run when Python-related files change AND lint-containerfiles passed/skipped
     if: |
@@ -449,7 +449,7 @@ jobs:
 
   test-cuda-image-arm64:
     name: Test CUDA ${{ matrix.version }} Image (arm64)
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     needs: [lint, type-check, changes, lint-containerfiles]
     # Run when CUDA-related files change AND lint-containerfiles passed/skipped
     if: |
