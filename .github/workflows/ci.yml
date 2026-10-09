@@ -62,6 +62,8 @@ jobs:
               - 'tests/conftest.py'
               - 'tests/test_cuda_image.py'
               - 'tests/__init__.py'
+              - 'pyproject.toml'
+              - 'tox.ini'
             any-rocm:
               - 'rocm/**/Containerfile'
               - 'rocm/**/app.conf'
@@ -73,6 +75,8 @@ jobs:
               - 'tests/conftest.py'
               - 'tests/test_rocm_image.py'
               - 'tests/__init__.py'
+              - 'pyproject.toml'
+              - 'tox.ini'
             any-python:
               - 'python/**/Containerfile'
               - 'python/**/app.conf'
@@ -86,6 +90,8 @@ jobs:
               - 'tests/conftest.py'
               - 'tests/test_python_image.py'
               - 'tests/__init__.py'
+              - 'pyproject.toml'
+              - 'tox.ini'
               
       - name: Build version matrices
         id: build-matrices
@@ -131,7 +137,7 @@ jobs:
             local type="$1"
             local files="$2"
             echo "$files" | grep -qE \
-              "requirements-build\.txt|scripts/fix-permissions|scripts/build\.sh|\.dockerignore|tests/|^\.github/workflows/ci\.yml$|^\.tekton/"
+              "requirements-build\.txt|scripts/fix-permissions|scripts/build\.sh|\.dockerignore|tests/|\.github/workflows/ci\.yml|\.tekton/|pyproject\.toml|tox\.ini"
           }
 
           # Build matrix for each image type
