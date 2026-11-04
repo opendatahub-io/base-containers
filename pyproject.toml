@@ -13,7 +13,7 @@ lint = [
 ]
 type = [
     "mypy>=2.4.0,<2.5.0",
-    "pytest>=9.1.1,<9.2.0",  # for type stubs
+    "pytest>=9.2.0,<9.3.0",  # for type stubs
 ]
 dev = [
     "odh-base-containers[test,lint,type]",
